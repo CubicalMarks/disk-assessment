@@ -320,8 +320,8 @@ main { padding-top: 27px; }
 #breadcrumbs button { font-size: 10px; }
 .folder-tools { margin-left: 20px; margin-right: 20px; margin-bottom: 12px; }
 #folderFilter { background: color-mix(in srgb,var(--paper) 65%,var(--surface)); border-color: var(--line); border-radius: 7px; padding: 6px 9px; font-size: 10px; }
-#map { height: clamp(350px,46vh,540px); background: radial-gradient(ellipse at 35% 15%,#343d64,#171e34 75%); border-radius: 12px; margin: 0 12px; isolation: isolate; box-shadow: inset 0 1px 4px #0b102b30; }
-.tile { border: 3px solid #fff; border-radius: 13px; color: #fff; background: linear-gradient(145deg,color-mix(in srgb,var(--tile) 95%,#e4e9ff),var(--tile) 55%,color-mix(in srgb,var(--tile) 83%,#10172a)); background-clip: padding-box; box-shadow: inset 0 1px #ffffff26; transition: box-shadow .18s,filter .18s; overflow: hidden; }
+#map { height: clamp(350px,46vh,540px); background: var(--surface); border-radius: 12px; margin: 0 12px; isolation: isolate; box-shadow: none; }
+.tile { border: 3px solid var(--surface); border-radius: 13px; color: #fff; background: linear-gradient(145deg,color-mix(in srgb,var(--tile) 95%,#e4e9ff),var(--tile) 55%,color-mix(in srgb,var(--tile) 83%,#10172a)); background-clip: padding-box; box-shadow: inset 0 1px #ffffff26; transition: box-shadow .18s,filter .18s; overflow: hidden; }
 .tile:hover { background: linear-gradient(145deg,color-mix(in srgb,var(--tile) 95%,#e4e9ff),var(--tile) 55%,color-mix(in srgb,var(--tile) 83%,#10172a)); filter: none; box-shadow: inset 0 0 0 1px #ffffff66; }
 .tile::before { content: ''; position: absolute; inset: 0; background: linear-gradient(145deg,#ffffff08,transparent 60%); border-radius: 10px; box-shadow: inset 0 1px #ffffff20; pointer-events: none; }
 .tile.item-selected { box-shadow: inset 0 0 0 2px #ffffffdd,inset 0 0 22px #ffffff0d; z-index: 2; }
@@ -394,7 +394,7 @@ main { padding-top: 27px; }
     .stats article { box-shadow: 0 5px 20px #00000010,inset 0 1px #ffffff08; }
     .stats .free-stat { background: radial-gradient(ellipse at 95% 0%,#7370c94d,transparent 70%),linear-gradient(130deg,#30385e,#353e71); }
     .panel { box-shadow: 0 8px 30px #00000012,inset 0 1px #ffffff05; }
-    .tile { border-color: #1a2131; }
+    .tile { border-color: var(--surface); }
     .tile:hover { background: linear-gradient(145deg,color-mix(in srgb,var(--tile) 95%,#e4e9ff),var(--tile) 55%,color-mix(in srgb,var(--tile) 83%,#10172a)); }
     .item-symbol { box-shadow: inset 0 1px #ffffff12; color: color-mix(in srgb,var(--item-color) 50%,#e7eaff); }
     .app-screen { background: radial-gradient(ellipse at 50% 36%,#353e694d 0,transparent 45%),radial-gradient(ellipse at 65% 55%,#1e3c4b44 0,transparent 40%),var(--paper); }
