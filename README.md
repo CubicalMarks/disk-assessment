@@ -36,7 +36,7 @@ Choose **Scan Mac** or **Choose Folder…**, then browse the resulting map, revi
 | `make test` | Run native, Python and JavaScript tests using temporary fixtures |
 | `make check` | Run source checks, build/signature verification and tests |
 
-The scripts also work directly: `bash lint.sh`, `bash build-app.sh` and `bash test-app.sh`. Tests do not require an existing app bundle, a real scan, Docker or a saved report. Source checks use the installed language tools; there is no third-party style linter or automatic reformatting. Swift compilation in the build checks types; the syntax checks alone do not establish correct behavior. HTML/CSS changes need a visual check in the rebuilt app.
+The scripts also work directly: `bash scripts/lint.sh`, `bash scripts/build-app.sh` and `bash scripts/test-app.sh`. Tests do not require an existing app bundle, a real scan, Docker or a saved report. Source checks use the installed language tools; there is no third-party style linter or automatic reformatting. Swift compilation in the build checks types; the syntax checks alone do not establish correct behavior. HTML/CSS changes need a visual check in the rebuilt app.
 
 Tests cover allocated/sparse file accounting, hard-link deduplication, symlinks, access error reporting, cancellation, candidate overlap, snapshot compatibility, Finder target validation, navigation history, stable colors and map proportions/bounds. Finder tests resolve temporary paths without opening items.
 
@@ -44,16 +44,25 @@ Read [AGENTS.md](AGENTS.md) for implementation boundaries and change-specific va
 
 ### Source map
 
+```text
+src/              Swift application code
+resources/web/    Bundled HTML, CSS and JavaScript
+resources/        Shared cleanup rules and app configuration
+tests/            Swift, JavaScript and Python tests
+scripts/          Build, source checks and test runners
+tools/            Python utilities and icon generation
+```
+
 | File | Responsibility |
 | --- | --- |
-| `App.swift` | AppKit window, WKWebView bridge, scan lifecycle, report persistence and native dialogs/menus |
-| `Scanner.swift` | Native metadata scanner and snapshot models |
-| `FinderActions.swift` | Report allowlist and current file/folder validation |
-| `index.html`, `style.css`, `app.js` | Shared report interface bundled into the app |
-| `treemap.js`, `ui-model.js` | Pure map layout and report navigation helpers |
-| `cleanup-rules.json` | Shared exact-path candidate classification |
-| `scan.py`, `serve.py`, `inspect_docker.py` | Optional Python/browser tools |
-| `Icon.swift`, `Info.plist`, `build-app.sh` | App icon generation, bundle configuration and build/signing |
+| `src/App.swift` | AppKit window, WKWebView bridge, scan lifecycle, report persistence and native dialogs/menus |
+| `src/Scanner.swift` | Native metadata scanner and snapshot models |
+| `src/FinderActions.swift` | Report allowlist and current file/folder validation |
+| `resources/web/index.html`, `resources/web/style.css`, `resources/web/app.js` | Shared report interface bundled into the app |
+| `resources/web/treemap.js`, `resources/web/ui-model.js` | Pure map layout and report navigation helpers |
+| `resources/cleanup-rules.json` | Shared exact-path candidate classification |
+| `tools/scan.py`, `tools/serve.py`, `tools/inspect_docker.py` | Optional Python/browser tools |
+| `tools/Icon.swift`, `resources/Info.plist`, `scripts/build-app.sh` | App icon generation, bundle configuration and build/signing |
 
 ## Measurement limits
 
@@ -63,7 +72,7 @@ APFS clones, compression, snapshots, directory metadata and inaccessible paths p
 
 The volume bar distinguishes measured file blocks, usage not attributed by the scan, other shared usage and available space. Unattributed usage is the positive difference between volume-used bytes and measured file blocks. Other shared usage is the capacity remainder after data-volume used and available bytes; it includes sibling APFS volumes and overhead. Neither category means junk.
 
-Candidate classification uses explicit rules in `cleanup-rules.json` and the scanners' suffix rules. Candidates below 10 MiB are omitted. Parent candidates own nested candidates to avoid double-counting. “Rebuildable” is a review lead; it does not prove files are disposable. The app makes no duplicate-file or last-access-time claims.
+Candidate classification uses explicit rules in `resources/cleanup-rules.json` and the scanners' suffix rules. Candidates below 10 MiB are omitted. Parent candidates own nested candidates to avoid double-counting. “Rebuildable” is a review lead; it does not prove files are disposable. The app makes no duplicate-file or last-access-time claims.
 
 For system-managed storage, use the owning tools: [Apple local snapshots](https://support.apple.com/en-ie/102154), [Docker disk images](https://docs.docker.com/desktop/troubleshoot-and-support/faqs/macfaqs/) and [Xcode components](https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components).
 
@@ -78,8 +87,8 @@ No file contents are scanned, and there are no external assets, telemetry or net
 The original browser report uses Python's standard library and plain HTML/CSS/JavaScript:
 
 ```sh
-python3 scan.py --root "$HOME"
-python3 serve.py
+python3 tools/scan.py --root "$HOME"
+python3 tools/serve.py
 ```
 
 Open <http://127.0.0.1:8765>. Omitting `--root` scans `/System/Volumes/Data` on macOS. `--minimum-mib 10` retains more tree detail; the default is 50 MiB. **Reload snapshot** reloads the JSON and does not start a scan. Finder integration is available only in the native app.
@@ -91,4 +100,4 @@ The CLI writes `report-data.json` by default; use `--output reports/example.json
   --scan /path/to/folder --output /tmp/report.json
 ```
 
-For an optional Docker breakdown, run `python3 inspect_docker.py` after creating the default CLI report. It invokes only `docker system df --format json` and appends the daemon's estimates. It performs no pruning. These estimates overlap the disk-image footprint and must not be added to candidate totals.
+For an optional Docker breakdown, run `python3 tools/inspect_docker.py` after creating the default CLI report. It invokes only `docker system df --format json` and appends the daemon's estimates. It performs no pruning. These estimates overlap the disk-image footprint and must not be added to candidate totals.

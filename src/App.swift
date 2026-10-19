@@ -274,7 +274,7 @@ if let i = CommandLine.arguments.firstIndex(of: "--scan"), CommandLine.arguments
     do {
         let args = CommandLine.arguments
         let rules = Bundle.main.resourceURL?.appendingPathComponent("cleanup-rules.json")
-            ?? URL(fileURLWithPath: "cleanup-rules.json")
+            ?? URL(fileURLWithPath: "resources/cleanup-rules.json")
         let scanner = try DiskScanner(root: args[i+1], rulesURL: rules, cancellation: ScanCancellation())
         let result = try JSONEncoder().encode(scanner.run())
         if let output = args.firstIndex(of: "--output"), args.count > output+1 {

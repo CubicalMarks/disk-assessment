@@ -4,20 +4,20 @@ This is a local, read-only macOS storage assessment app. Read `README.md` for se
 
 ## Architecture
 
-- `App.swift`: AppKit window, WKWebView bridge, scan lifecycle, private report cache, native menus and dialogs.
-- `Scanner.swift`: native scanner and Codable snapshot models.
-- `FinderActions.swift`: validates Finder targets against the loaded report and the current filesystem.
-- `index.html`, `style.css`, `app.js`: bundled report and UI. No bundler, external assets or runtime packages.
-- `treemap.js`, `ui-model.js`: pure layout and navigation helpers, also loaded by Node tests.
-- `cleanup-rules.json`: exact-path classification shared by the native and Python scanners.
-- `scan.py`, `serve.py`, `inspect_docker.py`: optional CLI/browser workflow using the Python standard library.
+- `src/App.swift`: AppKit window, WKWebView bridge, scan lifecycle, private report cache, native menus and dialogs.
+- `src/Scanner.swift`: native scanner and Codable snapshot models.
+- `src/FinderActions.swift`: validates Finder targets against the loaded report and the current filesystem.
+- `resources/web/index.html`, `resources/web/style.css`, `resources/web/app.js`: bundled report and UI. No bundler, external assets or runtime packages.
+- `resources/web/treemap.js`, `resources/web/ui-model.js`: pure layout and navigation helpers, also loaded by Node tests.
+- `resources/cleanup-rules.json`: exact-path classification shared by the native and Python scanners.
+- `tools/scan.py`, `tools/serve.py`, `tools/inspect_docker.py`: optional CLI/browser workflow using the Python standard library.
 
 ## Boundaries to preserve
 
 - Scan filenames and metadata only. Do not read file contents, follow symlinks, cross filesystem devices, delete user data or add automatic cleanup.
 - Do not start a whole-disk scan as part of development or testing. Use temporary fixtures. Preserve the user's saved report and any running scan.
 - Report allocated blocks separately from logical file size. Candidate footprints are review leads, never guaranteed reclaimable bytes. Keep APFS sharing and coverage limitations visible.
-- Keep native and Python classification consistent. Change shared exact-path rules in `cleanup-rules.json`; check both implementations when changing suffix rules or snapshot contracts.
+- Keep native and Python classification consistent. Change shared exact-path rules in `resources/cleanup-rules.json`; check both implementations when changing suffix rules or snapshot contracts.
 - Balanced map weights affect areas only. Labels, percentages, sorting, totals and exports use actual measured bytes.
 - Treat filenames and report data as untrusted text. Use textContent/DOM construction, and validate native bridge requests. Finder actions must accept only existing paths from the loaded report, open folders or reveal files, and never launch files or app bundles.
 - Keep browser serving on loopback with an explicit asset allowlist. Keep app resources local, without telemetry or external scripts/fonts.

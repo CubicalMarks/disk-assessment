@@ -5,13 +5,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 
-ROOT = Path(__file__).resolve().parent
-ASSETS = {'/': ('index.html', 'text/html; charset=utf-8'),
-          '/index.html': ('index.html', 'text/html; charset=utf-8'),
-          '/style.css': ('style.css', 'text/css; charset=utf-8'),
-          '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
-          '/treemap.js': ('treemap.js', 'text/javascript; charset=utf-8'),
-          '/ui-model.js': ('ui-model.js', 'text/javascript; charset=utf-8'),
+ROOT = Path(__file__).resolve().parents[1]
+ASSETS = {'/': ('resources/web/index.html', 'text/html; charset=utf-8'),
+          '/index.html': ('resources/web/index.html', 'text/html; charset=utf-8'),
+          '/style.css': ('resources/web/style.css', 'text/css; charset=utf-8'),
+          '/app.js': ('resources/web/app.js', 'text/javascript; charset=utf-8'),
+          '/treemap.js': ('resources/web/treemap.js', 'text/javascript; charset=utf-8'),
+          '/ui-model.js': ('resources/web/ui-model.js', 'text/javascript; charset=utf-8'),
           '/report-data.json': ('report-data.json', 'application/json')}
 
 

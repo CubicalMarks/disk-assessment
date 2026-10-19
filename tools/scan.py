@@ -14,7 +14,7 @@ import time
 MIB = 1024**2
 GIB = 1024**3
 DATA = '/System/Volumes/Data'
-CLEANUP_RULES = json.loads(Path(__file__).with_name('cleanup-rules.json').read_text())
+CLEANUP_RULES = json.loads((Path(__file__).resolve().parents[1] / 'resources' / 'cleanup-rules.json').read_text())
 
 
 def display_path(path):

@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {weightItems, layout} = require('./treemap.js');
+const {weightItems, layout} = require('../resources/web/treemap.js');
 
 const items = [455, 64, 44, 31, 15, 8, 4, 3, 2, 1, .1].map((gib, index) => ({
     name: String(index), path: '/'+index, bytes: gib * 1024**3

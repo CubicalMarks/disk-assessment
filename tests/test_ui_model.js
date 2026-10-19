@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {color, index, Navigation} = require('./ui-model.js');
+const {color, index, Navigation} = require('../resources/web/ui-model.js');
 const leaf = {path:'/root/a/file',kind:'file',bytes:12};
 const a = {path:'/root/a',kind:'directory',bytes:12,children:[leaf]};
 const b = {path:'/root/b',kind:'directory',bytes:20,children:[]};
