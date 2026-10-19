@@ -75,3 +75,5 @@ In the macOS app, Finder buttons are available on map tiles, list rows, review c
 Review checkboxes form a separate selection for copying a list of paths. They do not authorize cleanup or represent guaranteed savings. The Large Files tab keeps individual-file review next to the map.
 
 The interaction patterns were informed by [GrandPerspective’s file selection and Finder reveal](https://grandperspectiv.sourceforge.net/) and [DaisyDisk’s inspection workflow](https://daisydiskapp.com/guide/4/en/Previewing/). No deletion or automated cleanup has been added.
+
+The visual theme pairs a cool glass-like window surface with a saturated indigo/teal storage map, larger size labels, real folder-share labels, and an available-capacity gauge. Light/dark appearance and reduced-motion preferences are respected. The graphic treatment does not change scan measurements or area-scaling modes.

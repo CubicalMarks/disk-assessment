@@ -180,9 +180,19 @@ function renderExplorer() {
         control.setAttribute('aria-label',item.name+', '+fmt(item.bytes));
         control.setAttribute('aria-pressed',String(activeItem?.path===item.path));
         if (r.w<115 || r.h<70) tile.classList.add('compact');
+        if (r.w>220 && r.h>170) tile.classList.add('tile-hero');
+        else if (r.w>135 && r.h>110) tile.classList.add('tile-medium');
         if (r.w>40 && r.h>24) {
-            control.append(el('strong','',item.name));
-            if (r.h>48) control.append(el('span',r.w<100?'tiny':'',fmt(item.bytes)));
+            const heading=el('div','tile-heading');
+            if(r.w>135&&r.h>90)heading.append(icon(item.kind==='directory'?'folder':'file'));
+            heading.append(el('strong','',item.name));
+            control.append(heading);
+            if(r.h>48){
+                const metric=el('div','tile-metric');
+                metric.append(el('span',r.w<100?'tile-amount tiny':'tile-amount',fmt(item.bytes)));
+                if(r.w>135&&r.h>110)metric.append(el('span','tile-share',(100*item.bytes/node.bytes).toLocaleString(undefined,{maximumFractionDigits:2})+'% of folder'));
+                control.append(metric);
+            }
         }
         control.onclick = () => selectItem(item);
         control.ondblclick = () => activate(item);

@@ -1,7 +1,7 @@
 'use strict';
 
 const ReportModel = (() => {
-    const palette = ['#0a84ff','#5e5ce6','#30b0c7','#34c759','#af52de','#ff9f0a','#ff375f','#64a7ff'];
+    const palette = ['#22738f','#6555b7','#20757e','#4f56c8','#8150ad','#257476','#8e4f8a','#375f9e'];
     function color(path) {
         let hash = 0;
         for (const char of path) hash = (hash * 31 + char.codePointAt(0)) | 0;
