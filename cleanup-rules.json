@@ -1,0 +1,110 @@
+[
+  {
+    "path": "/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime",
+    "category": "review",
+    "label": "iOS simulator runtime assets",
+    "guidance": "Review unused simulator runtimes in Xcode Settings > Components. These are managed system assets; do not remove their files directly."
+  },
+  {
+    "path": "/Library/Developer/CoreSimulator",
+    "category": "review",
+    "label": "Shared simulator support",
+    "guidance": "Review simulator components through Xcode. This folder contains shared caches and support data; mounted runtime volumes are excluded from this footprint. Do not remove the folder directly."
+  },
+  {
+    "path": "${HOME}/Library/Developer/Xcode/DerivedData",
+    "category": "rebuildable",
+    "label": "Xcode build output",
+    "guidance": "Close Xcode and review project build output; rebuilding can take time."
+  },
+  {
+    "path": "${HOME}/Library/Caches",
+    "category": "rebuildable",
+    "label": "User app caches",
+    "guidance": "Review by app and quit it first. Cache labels do not guarantee every file is disposable."
+  },
+  {
+    "path": "${HOME}/.npm/_cacache",
+    "category": "rebuildable",
+    "label": "npm package cache",
+    "guidance": "Use npm cache verify first; cache removal requires downloads again."
+  },
+  {
+    "path": "${HOME}/.npm/_npx",
+    "category": "rebuildable",
+    "label": "npm execution cache",
+    "guidance": "Review cached npx installations. Commands will need to download packages again."
+  },
+  {
+    "path": "${HOME}/.cache/pip",
+    "category": "rebuildable",
+    "label": "pip package cache",
+    "guidance": "Inspect with python -m pip cache info; use the package manager to manage it."
+  },
+  {
+    "path": "${HOME}/Library/Caches/pip",
+    "category": "rebuildable",
+    "label": "pip package cache",
+    "guidance": "Inspect with python -m pip cache info; use the package manager to manage it."
+  },
+  {
+    "path": "${HOME}/.gradle/caches",
+    "category": "rebuildable",
+    "label": "Gradle caches",
+    "guidance": "Review with Gradle stopped; dependencies and build artifacts may need downloading again."
+  },
+  {
+    "path": "${HOME}/.Trash",
+    "category": "review",
+    "label": "Trash",
+    "guidance": "Review the contents before emptying Trash."
+  },
+  {
+    "path": "${HOME}/Downloads",
+    "category": "review",
+    "label": "Downloads",
+    "guidance": "Personal downloads can include originals; review files individually."
+  },
+  {
+    "path": "${HOME}/Library/Developer/Xcode/Archives",
+    "category": "review",
+    "label": "Xcode archives",
+    "guidance": "May contain release archives and debug symbols. Keep what you need for distribution and crash reports."
+  },
+  {
+    "path": "${HOME}/Library/Developer/CoreSimulator",
+    "category": "review",
+    "label": "Simulator data",
+    "guidance": "Contains runtimes and app data. Review devices and runtimes in Xcode."
+  },
+  {
+    "path": "${HOME}/Library/Android/sdk",
+    "category": "review",
+    "label": "Android SDK",
+    "guidance": "Review unused platforms and emulator images in Android Studio SDK Manager."
+  },
+  {
+    "path": "${HOME}/.android/avd",
+    "category": "review",
+    "label": "Android virtual devices",
+    "guidance": "Review emulator devices in Android Studio; they can contain app data."
+  },
+  {
+    "path": "${HOME}/.ollama/models",
+    "category": "review",
+    "label": "Ollama models",
+    "guidance": "Review installed models and remove only models you no longer use through Ollama."
+  },
+  {
+    "path": "${HOME}/.codex/worktrees",
+    "category": "review",
+    "label": "Codex worktrees",
+    "guidance": "May contain uncommitted work and ignored files. Review and archive worktrees in Codex."
+  },
+  {
+    "path": "${HOME}/Library/Application Support/MobileSync/Backup",
+    "category": "review",
+    "label": "Device backups",
+    "guidance": "Manage backups in Finder; preserve any backups you still need."
+  }
+]

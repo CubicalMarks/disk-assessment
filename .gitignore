@@ -3,3 +3,6 @@ assessment.md
 __pycache__/
 *.log
 .DS_Store
+
+dist/
+.build/

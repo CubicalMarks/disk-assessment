@@ -14,6 +14,7 @@ import time
 MIB = 1024**2
 GIB = 1024**3
 DATA = '/System/Volumes/Data'
+CLEANUP_RULES = json.loads(Path(__file__).with_name('cleanup-rules.json').read_text())
 
 
 def display_path(path):
@@ -25,26 +26,8 @@ def display_path(path):
 def classify(path, is_dir=True):
     """Path rules identify review candidates, never prove data is disposable."""
     home = str(Path.home())
-    exact = {
-        '/System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime': ('review', 'iOS simulator runtime assets', 'Review unused simulator runtimes in Xcode Settings > Components. These are managed system assets; do not remove their files directly.'),
-        '/Library/Developer/CoreSimulator': ('review', 'Shared simulator support', 'Review simulator components through Xcode. This folder contains shared caches and support data; mounted runtime volumes are excluded from this footprint. Do not remove the folder directly.'),
-        home + '/Library/Developer/Xcode/DerivedData': ('rebuildable', 'Xcode build output', 'Close Xcode and review project build output; rebuilding can take time.'),
-        home + '/Library/Caches': ('rebuildable', 'User app caches', 'Review by app and quit it first. Cache labels do not guarantee every file is disposable.'),
-        home + '/.npm/_cacache': ('rebuildable', 'npm package cache', 'Use npm cache verify first; cache removal requires downloads again.'),
-        home + '/.npm/_npx': ('rebuildable', 'npm execution cache', 'Review cached npx installations. Commands will need to download packages again.'),
-        home + '/.cache/pip': ('rebuildable', 'pip package cache', 'Inspect with python -m pip cache info; use the package manager to manage it.'),
-        home + '/Library/Caches/pip': ('rebuildable', 'pip package cache', 'Inspect with python -m pip cache info; use the package manager to manage it.'),
-        home + '/.gradle/caches': ('rebuildable', 'Gradle caches', 'Review with Gradle stopped; dependencies and build artifacts may need downloading again.'),
-        home + '/.Trash': ('review', 'Trash', 'Review the contents before emptying Trash.'),
-        home + '/Downloads': ('review', 'Downloads', 'Personal downloads can include originals; review files individually.'),
-        home + '/Library/Developer/Xcode/Archives': ('review', 'Xcode archives', 'May contain release archives and debug symbols. Keep what you need for distribution and crash reports.'),
-        home + '/Library/Developer/CoreSimulator': ('review', 'Simulator data', 'Contains runtimes and app data. Review devices and runtimes in Xcode.'),
-        home + '/Library/Android/sdk': ('review', 'Android SDK', 'Review unused platforms and emulator images in Android Studio SDK Manager.'),
-        home + '/.android/avd': ('review', 'Android virtual devices', 'Review emulator devices in Android Studio; they can contain app data.'),
-        home + '/.ollama/models': ('review', 'Ollama models', 'Review installed models and remove only models you no longer use through Ollama.'),
-        home + '/.codex/worktrees': ('review', 'Codex worktrees', 'May contain uncommitted work and ignored files. Review and archive worktrees in Codex.'),
-        home + '/Library/Application Support/MobileSync/Backup': ('review', 'Device backups', 'Manage backups in Finder; preserve any backups you still need.'),
-    }
+    exact = {r['path'].replace('${HOME}', home): (r['category'], r['label'], r['guidance'])
+             for r in CLEANUP_RULES}
     if path in exact:
         return exact[path]
     if not is_dir and os.path.basename(path) in ('Docker.raw', 'Docker.qcow2'):
