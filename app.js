@@ -182,12 +182,12 @@ function renderExplorer() {
         if (r.w<115 || r.h<70) tile.classList.add('compact');
         if (r.w>220 && r.h>170) tile.classList.add('tile-hero');
         else if (r.w>135 && r.h>110) tile.classList.add('tile-medium');
-        if (r.w>40 && r.h>24) {
+        if (r.w>48 && r.h>30) {
             const heading=el('div','tile-heading');
             if(r.w>135&&r.h>90)heading.append(icon(item.kind==='directory'?'folder':'file'));
             heading.append(el('strong','',item.name));
             control.append(heading);
-            if(r.h>48){
+            if(r.h>60){
                 const metric=el('div','tile-metric');
                 metric.append(el('span',r.w<100?'tile-amount tiny':'tile-amount',fmt(item.bytes)));
                 if(r.w>135&&r.h>110)metric.append(el('span','tile-share',(100*item.bytes/node.bytes).toLocaleString(undefined,{maximumFractionDigits:2})+'% of folder'));
