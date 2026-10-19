@@ -1,79 +1,94 @@
-# Disk assessment
+# Disk Assessment
 
-A local, read-only macOS app for scanning storage and reviewing a measured report.
+A local, read-only macOS app for exploring disk usage, reviewing cleanup candidates and opening items in Finder. It runs in a normal window with no background scanner or menu-bar utility.
 
-## Run the app
+## Build and run
 
-Open `dist/Disk Assessment.app` in Finder. You can copy it to Applications if you prefer. The app is self-contained: it uses a native Swift scanner and macOS’s built-in WebKit, with no Python installation, local server or package downloads.
+Requirements for development:
 
-The window opens with **Scan Mac**, **Choose Folder…**, and (after a completed scan) **View last report**. A scan shows file/folder counts, the current path, and Cancel. The resulting report contains the folder map, candidate review list and largest files. The interface uses system fonts, neutral surfaces, standard blue accents, and follows the Mac’s light/dark appearance. The map defaults to **Balanced** scaling to keep smaller folders visible; choose **Actual size** for areas proportional to allocated bytes. Balanced mode uses square-root weights with a minimum of one third of an equal share per entry. This changes display areas only: byte labels, percentages in tooltips, candidate totals, list ordering and exported reports always retain the measured sizes. Report actions let you start a new scan, show the explored folder in Finder, copy paths and export the JSON snapshot. There is no persistent toolbar, menu-bar utility or background scan.
-
-The last completed report is saved privately at `~/Library/Application Support/Disk Assessment/last-report.json`. Cancelled scans preserve it. Scans still respect macOS privacy restrictions and report access failures. The app does not request administrator privileges or change Full Disk Access settings.
-
-### Build locally
+- macOS 13 or newer.
+- Apple's Xcode command-line tools (`xcode-select --install` if missing).
+- Python 3.10+ and Node.js 18+ for source checks and tests. Neither is needed to run the built app.
 
 ```sh
-bash build-app.sh
-bash test-app.sh
+make check
+open "dist/Disk Assessment.app"
 ```
 
-Building requires Apple’s Xcode command-line tools. The current build targets the architecture of the build Mac and macOS 13 or newer; it has been tested on this Apple silicon Mac. It is signed locally for personal use, not notarized for distribution to others. Build output and private reports are excluded from Git.
+The build targets the current Mac's architecture and bundles the report assets, native Swift scanner and macOS WebKit integration. There are no package downloads or runtime dependencies. You can also open the app in Finder or copy it to Applications. The app is signed ad hoc for local use; it is not notarized for distribution.
 
-`Scanner.swift` implements the native metadata scan; `cleanup-rules.json` supplies the exact-path classification shared with the optional Python scanner. `App.swift` provides a normal macOS window and native folder/export dialogs. The existing local HTML/CSS/JavaScript report is bundled into the app, with native messages for scanning, copying and Finder actions. No web server is started.
+Choose **Scan Mac** or **Choose Folder…**, then browse the resulting map, review candidates or largest files. **View last report** reopens the last completed scan. Cancelling a scan preserves that report.
 
-## Optional browser / Python workflow
+## Using the report
 
-The original CLI and browser report are still supported, using Python’s standard library and plain HTML/CSS/JavaScript:
+- Select an item to inspect its size and path; double-click a folder, or press Return on its map tile, to explore it. Use Back, Forward, Up, breadcrumbs and the current-folder filter to navigate.
+- **Balanced** scaling keeps smaller entries visible using square-root weights with a minimum of one third of an equal share per entry. **Actual size** uses areas proportional to allocated bytes. Labels, percentages, totals, sorting and exports always use measured bytes.
+- **Open in Finder** opens a folder; **Show in Finder** selects a file. Right-click or use **More…** for native actions. Command-R reveals the selection. Finder targets must belong to the loaded report and still exist; files and app bundles are never launched.
+- Review checkboxes collect paths for copying. They do not authorize cleanup. There are no deletion controls.
+- **Export Snapshot…** saves a JSON report. **New Scan** returns to the scan choices. The UI follows the Mac's appearance and reduced-motion settings.
+
+## Development
+
+| Command | Purpose |
+| --- | --- |
+| `make build` | Build and sign the app, then verify its signature |
+| `make lint` | Check shell, JavaScript, Swift and Python syntax, JSON/plist parsing and changed-line whitespace |
+| `make test` | Run native, Python and JavaScript tests using temporary fixtures |
+| `make check` | Run source checks, build/signature verification and tests |
+
+The scripts also work directly: `bash lint.sh`, `bash build-app.sh` and `bash test-app.sh`. Tests do not require an existing app bundle, a real scan, Docker or a saved report. Source checks use the installed language tools; there is no third-party style linter or automatic reformatting. Swift compilation in the build checks types; the syntax checks alone do not establish correct behavior. HTML/CSS changes need a visual check in the rebuilt app.
+
+Tests cover allocated/sparse file accounting, hard-link deduplication, symlinks, access error reporting, cancellation, candidate overlap, snapshot compatibility, Finder target validation, navigation history, stable colors and map proportions/bounds. Finder tests resolve temporary paths without opening items.
+
+Read [AGENTS.md](AGENTS.md) for implementation boundaries and change-specific validation. Editor whitespace settings are in `.editorconfig`. No remote or CI provider is assumed by the local checks.
+
+### Source map
+
+| File | Responsibility |
+| --- | --- |
+| `App.swift` | AppKit window, WKWebView bridge, scan lifecycle, report persistence and native dialogs/menus |
+| `Scanner.swift` | Native metadata scanner and snapshot models |
+| `FinderActions.swift` | Report allowlist and current file/folder validation |
+| `index.html`, `style.css`, `app.js` | Shared report interface bundled into the app |
+| `treemap.js`, `ui-model.js` | Pure map layout and report navigation helpers |
+| `cleanup-rules.json` | Shared exact-path candidate classification |
+| `scan.py`, `serve.py`, `inspect_docker.py` | Optional Python/browser tools |
+| `Icon.swift`, `Info.plist`, `build-app.sh` | App icon generation, bundle configuration and build/signing |
+
+## Measurement limits
+
+The scanner reads filenames and filesystem metadata only. It skips symlinks and other filesystem devices, and sums regular-file `st_blocks × 512` rather than logical file length. Hard links count once, at their first encountered location. Parent totals include entries hidden by the display threshold.
+
+APFS clones, compression, snapshots, directory metadata and inaccessible paths prevent an exact reconciliation with physical disk usage or recoverable space. Files can also change during a scan. Access failures remain visible; the app does not request administrator privileges or change Full Disk Access settings.
+
+The volume bar distinguishes measured file blocks, usage not attributed by the scan, other shared usage and available space. Unattributed usage is the positive difference between volume-used bytes and measured file blocks. Other shared usage is the capacity remainder after data-volume used and available bytes; it includes sibling APFS volumes and overhead. Neither category means junk.
+
+Candidate classification uses explicit rules in `cleanup-rules.json` and the scanners' suffix rules. Candidates below 10 MiB are omitted. Parent candidates own nested candidates to avoid double-counting. “Rebuildable” is a review lead; it does not prove files are disposable. The app makes no duplicate-file or last-access-time claims.
+
+For system-managed storage, use the owning tools: [Apple local snapshots](https://support.apple.com/en-ie/102154), [Docker disk images](https://docs.docker.com/desktop/troubleshoot-and-support/faqs/macfaqs/) and [Xcode components](https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components).
+
+## Privacy and local data
+
+The app saves the last completed report to `~/Library/Application Support/Disk Assessment/last-report.json`, with private directory/file permissions. Reports contain personal paths. Keep exports in the ignored `reports/` or `snapshots/` directories; do not commit them. Build output, compiler caches, default CLI reports, local environment files and logs are also ignored. Renamed exports elsewhere still need care before staging.
+
+No file contents are scanned, and there are no external assets, telemetry or network services in the app. Optional browser serving binds to loopback, exposes only allowed report assets and has no filesystem mutation endpoints or directory listing.
+
+## Optional Python/browser workflow
+
+The original browser report uses Python's standard library and plain HTML/CSS/JavaScript:
 
 ```sh
-python3 scan.py
+python3 scan.py --root "$HOME"
 python3 serve.py
 ```
 
-Open http://127.0.0.1:8765. The default scan covers `/System/Volumes/Data` on macOS, staying on the same filesystem. For a smaller scan: `python3 scan.py --root "$HOME"`. Use `--minimum-mib 10` to retain more detail. Reload snapshot in the browser after rescanning; that button does not start a new scan. The UI threshold reflects the snapshot's scan setting.
+Open <http://127.0.0.1:8765>. Omitting `--root` scans `/System/Volumes/Data` on macOS. `--minimum-mib 10` retains more tree detail; the default is 50 MiB. **Reload snapshot** reloads the JSON and does not start a scan. Finder integration is available only in the native app.
 
-The report includes an interactive folder map/list, candidate filters, selection and path copying, largest files, and coverage errors. Selected totals describe the allocated footprint, **not guaranteed space savings**. There are no deletion commands or filesystem mutation endpoints.
-
-## Measurement
-
-- Reads filenames and filesystem metadata only. File contents are not opened; symlinks and other devices are skipped.
-- Sums regular-file `st_blocks * 512`, rather than logical length. Hard links count once, at their first encountered location. Parent totals include entries hidden by the display threshold.
-- APFS clones can share blocks across files; compression, snapshots, shared volume space, directory metadata and inaccessible paths prevent an exact reconciliation with `df` or actual recoverable space. The bar displays measured blocks, the positive difference from volume-used bytes, and available bytes. The difference is unattributed by the assessment. Other shared usage is the capacity remainder after data-volume used and available bytes; it includes sibling APFS volumes and overhead. Neither is a junk category.
-- Files can change during the scan. Permission failures are reported, not bypassed. No `sudo`, entitlement changes, or automatic Full Disk Access changes.
-- Candidate classification is explicit and conservative in `cleanup-rules.json` and the scanners’ suffix rules. Candidates below 10 MiB are omitted. Parent candidates own nested ones, so review totals do not double-count nested paths. Rebuildable means a review lead, not permission to delete. No last-access-time assumptions or duplicate-file claims.
-- Local snapshots and protected content are outside the measured file sum. Apple manages local Time Machine snapshots as space is needed: https://support.apple.com/en-ie/102154
-- Docker disk images contain mixed data, including volumes. Manage them through Docker: https://docs.docker.com/desktop/troubleshoot-and-support/faqs/macfaqs/
-- Manage simulator runtimes in Xcode Settings > Components: https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components
-
-## Privacy
-
-`report-data.json` and `assessment.md` contain local paths and are ignored by Git. Do not publish them inadvertently. The server binds to loopback and exposes only the report assets, without directory listings. Reports use no external assets, telemetry or network services. The scanner writes only its requested output; normal OS metadata access effects still apply. Serve only snapshots you are comfortable viewing in your own browser.
-
-For an optional read-only Docker breakdown, after scanning run `python3 inspect_docker.py`. This invokes only `docker system df --format json`, records the daemon’s estimates in the snapshot, and performs no pruning. Docker figures overlap the disk-image footprint and must not be added to candidate totals.
-
-## Python / browser checks
+The CLI writes `report-data.json` by default; use `--output reports/example.json` after creating `reports/` to save a named export. The native executable also supports a headless scan:
 
 ```sh
-python3 -m unittest -v
-node --check app.js
-node test_treemap.js
+"dist/Disk Assessment.app/Contents/MacOS/DiskAssessment" \
+  --scan /path/to/folder --output /tmp/report.json
 ```
 
-The tests cover filesystem accounting, hard links, symlinks, permission error reporting, and candidate overlap. No cleanup is performed.
-
-Native checks cover allocated block accounting, sparse files, hardlink deduplication, symlink cycles, root validation, cancellation and compatibility with the earlier snapshot format. The optional executable mode `"dist/Disk Assessment.app/Contents/MacOS/DiskAssessment" --scan /path --output /tmp/report.json` runs the same native scanner without opening a window.
-
-Treemap checks verify true byte proportions in Actual size mode, visibility of smaller entries in Balanced mode, unchanged byte values, area coverage and non-overlapping bounds.
-
-
-## Finder and exploration
-
-Select a map tile, list item, review candidate or large file to inspect its real allocated size, path and share of the current folder. Double-click a folder (or press Return on its tile) to explore it. Back, Forward, Up and breadcrumbs preserve your navigation history. The folder filter applies to the current folder’s displayed entries. Map colors are stable for each path. Balanced/Actual size settings still affect display areas only.
-
-In the macOS app, Finder buttons are available on map tiles, list rows, review candidates, large files and the selection inspector. **Open in Finder** opens a folder window; **Show in Finder** selects a file in its containing folder. Right-click an item, or use the inspector’s More button, for native Finder and Copy Path actions. Command-R reveals the selection. Finder actions only accept paths from the loaded report, check whether they still exist, and never launch files in their default apps. The browser report offers inspection and copying, with Finder integration confined to the native app.
-
-Review checkboxes form a separate selection for copying a list of paths. They do not authorize cleanup or represent guaranteed savings. The Large Files tab keeps individual-file review next to the map.
-
-The interaction patterns were informed by [GrandPerspective’s file selection and Finder reveal](https://grandperspectiv.sourceforge.net/) and [DaisyDisk’s inspection workflow](https://daisydiskapp.com/guide/4/en/Previewing/). No deletion or automated cleanup has been added.
-
-The visual theme pairs a cool glass-like window surface with a saturated indigo/teal storage map, larger size labels, real folder-share labels, and an available-capacity gauge. Light/dark appearance and reduced-motion preferences are respected. The graphic treatment does not change scan measurements or area-scaling modes.
+For an optional Docker breakdown, run `python3 inspect_docker.py` after creating the default CLI report. It invokes only `docker system df --format json` and appends the daemon's estimates. It performs no pruning. These estimates overlap the disk-image footprint and must not be added to candidate totals.

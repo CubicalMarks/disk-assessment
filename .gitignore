@@ -1,8 +1,19 @@
-report-data.json
-assessment.md
+# Build output and compiler caches
+/dist/
+/.build/
 __pycache__/
+*.py[cod]
+
+# Private scan reports and exports; keep fixtures under a different name
+/report-data*.json
+/assessment*.md
+/last-report.json
+/reports/
+/snapshots/
+
+# Local configuration and diagnostics
+.env
+.env.*
+!.env.example
 *.log
 .DS_Store
-
-dist/
-.build/
