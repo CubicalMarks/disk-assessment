@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 APP="$PWD/dist/Disk Assessment.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" .build/module-cache
 cp Info.plist "$APP/Contents/Info.plist"
-cp index.html style.css app.js cleanup-rules.json "$APP/Contents/Resources/"
+cp index.html style.css treemap.js app.js cleanup-rules.json "$APP/Contents/Resources/"
 mkdir -p .build/AppIcon.iconset
 xcrun swift -module-cache-path "$PWD/.build/module-cache" Icon.swift .build/icon.png
 for size in 16 32 128 256 512; do

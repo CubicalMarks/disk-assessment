@@ -7,4 +7,5 @@ xcrun swiftc -swift-version 5 -module-cache-path "$PWD/.build/module-cache" \
 .build/scanner-tests
 python3 -m unittest -v
 node --check app.js
+node test_treemap.js
 codesign --verify --deep --strict "dist/Disk Assessment.app"

@@ -6,7 +6,7 @@ A local, read-only macOS app for scanning storage and reviewing a measured repor
 
 Open `dist/Disk Assessment.app` in Finder. You can copy it to Applications if you prefer. The app is self-contained: it uses a native Swift scanner and macOS’s built-in WebKit, with no Python installation, local server or package downloads.
 
-The window opens with **Scan Mac**, **Choose Folder…**, and (after a completed scan) **View last report**. A scan shows file/folder counts, the current path, and Cancel. The resulting report contains the folder map, candidate review list and largest files. Report actions let you start a new scan, show the explored folder in Finder, copy paths and export the JSON snapshot. There is no persistent toolbar, menu-bar utility or background scan.
+The window opens with **Scan Mac**, **Choose Folder…**, and (after a completed scan) **View last report**. A scan shows file/folder counts, the current path, and Cancel. The resulting report contains the folder map, candidate review list and largest files. The interface uses system fonts, neutral surfaces, standard blue accents, and follows the Mac’s light/dark appearance. The map defaults to **Balanced** scaling to keep smaller folders visible; choose **Actual size** for areas proportional to allocated bytes. Balanced mode uses square-root weights with a minimum of one third of an equal share per entry. This changes display areas only: byte labels, percentages in tooltips, candidate totals, list ordering and exported reports always retain the measured sizes. Report actions let you start a new scan, show the explored folder in Finder, copy paths and export the JSON snapshot. There is no persistent toolbar, menu-bar utility or background scan.
 
 The last completed report is saved privately at `~/Library/Application Support/Disk Assessment/last-report.json`. Cancelled scans preserve it. Scans still respect macOS privacy restrictions and report access failures. The app does not request administrator privileges or change Full Disk Access settings.
 
@@ -47,7 +47,7 @@ The report includes an interactive folder map/list, candidate filters, selection
 
 ## Privacy
 
-`report-data.json` and `assessment.md` contain local paths and are ignored by Git. Do not publish them inadvertently. The server binds to loopback and exposes only the report's four assets, without directory listings. Reports use no external assets, telemetry or network services. The scanner writes only its requested output; normal OS metadata access effects still apply. Serve only snapshots you are comfortable viewing in your own browser.
+`report-data.json` and `assessment.md` contain local paths and are ignored by Git. Do not publish them inadvertently. The server binds to loopback and exposes only the report assets, without directory listings. Reports use no external assets, telemetry or network services. The scanner writes only its requested output; normal OS metadata access effects still apply. Serve only snapshots you are comfortable viewing in your own browser.
 
 For an optional read-only Docker breakdown, after scanning run `python3 inspect_docker.py`. This invokes only `docker system df --format json`, records the daemon’s estimates in the snapshot, and performs no pruning. Docker figures overlap the disk-image footprint and must not be added to candidate totals.
 
@@ -56,8 +56,11 @@ For an optional read-only Docker breakdown, after scanning run `python3 inspect_
 ```sh
 python3 -m unittest -v
 node --check app.js
+node test_treemap.js
 ```
 
 The tests cover filesystem accounting, hard links, symlinks, permission error reporting, and candidate overlap. No cleanup is performed.
 
 Native checks cover allocated block accounting, sparse files, hardlink deduplication, symlink cycles, root validation, cancellation and compatibility with the earlier snapshot format. The optional executable mode `"dist/Disk Assessment.app/Contents/MacOS/DiskAssessment" --scan /path --output /tmp/report.json` runs the same native scanner without opening a window.
+
+Treemap checks verify true byte proportions in Actual size mode, visibility of smaller entries in Balanced mode, unchanged byte values, area coverage and non-overlapping bounds.

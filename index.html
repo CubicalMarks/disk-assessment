@@ -1,13 +1,12 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Disk assessment · local</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Disk assessment · local</title><link rel="stylesheet" href="style.css"><script src="treemap.js" defer></script><script src="app.js" defer></script></head>
 <body>
-<header><div class="brand"><span class="brand-icon">◫</span><div>Disk assessment <span class="local">LOCAL / READ ONLY</span></div></div><div class="report-actions"><button id="newScan" hidden>New Scan</button><button id="revealFolder" hidden>Show Folder in Finder</button><button id="exportSnapshot" hidden>Export Snapshot…</button><button id="reload">Reload snapshot ↻</button></div></header>
+<header><div class="brand"><span class="brand-icon">◫</span><div>Disk assessment <span class="local">Read only</span></div></div><div class="report-actions"><button id="newScan" hidden>New Scan</button><button id="revealFolder" hidden>Show Folder in Finder</button><button id="exportSnapshot" hidden>Export Snapshot…</button><button id="reload">Reload snapshot ↻</button></div></header>
 <section id="appStart" class="app-screen" hidden>
 <div class="welcome-icon" aria-hidden="true">◫</div>
-<p class="eyebrow">DISK ASSESSMENT</p>
-<h1>Make room for what matters.</h1>
-<p class="welcome-copy">See where your Mac’s storage goes.<br>Scan a disk or folder, then explore a clear, measured report.</p>
+<h1>Disk Assessment</h1>
+<p class="welcome-copy">Scan your Mac or a folder to see what’s using space and review cleanup candidates.</p>
 <div class="start-actions"><button id="scanMac" class="primary">Scan Mac</button><button id="chooseFolder">Choose Folder…</button></div>
 <button id="viewLast" class="text-button" hidden>View last report</button>
 <p id="startMessage" class="start-message" role="status"></p>
@@ -15,19 +14,19 @@
 </section>
 <section id="appProgress" class="app-screen" hidden>
 <div class="scan-spinner" role="progressbar" aria-label="Scanning"></div>
-<p class="eyebrow">TAKING A CLOSER LOOK</p><h1>Mapping your storage.</h1>
+<h1>Scanning storage…</h1>
 <p id="scanRoot" class="welcome-copy"></p><strong id="scanCount">Starting scan…</strong>
 <p id="scanPath" class="scan-path"></p><button id="cancelScan">Cancel Scan</button>
 <p class="privacy-note">Reading filenames and sizes. File contents are never opened.</p>
 </section>
 <main id="reportMain">
-<section class="intro"><div><p class="eyebrow">A LITTLE ROOM TO BREATHE</p><h1>Know where your space goes.</h1><p class="sub">A map of your Mac, with measured sizes and a considered review list.</p></div><div id="stamp" class="stamp"></div></section>
+<section class="intro"><div><h1>Storage Report</h1><p class="sub">Explore folders and review cleanup candidates.</p></div><div id="stamp" class="stamp"></div></section>
 <section class="stats" aria-label="Storage summary"><article><span>Available on volume</span><strong id="free">—</strong><small id="capacity"></small></article><article><span>Rebuildable candidates</span><strong id="rebuildable">—</strong><small>Review first · downloads and rebuilds required</small></article><article><span>Needs a closer look</span><strong id="review">—</strong><small>May contain work, settings or personal data</small></article><article><span>Files measured</span><strong id="measured">—</strong><small id="coverage"></small></article></section>
 <div class="volume-bar" id="volumeBar" aria-label="Volume usage"></div><div class="legend"><span><i class="dot measured"></i>Measured file blocks</span><span><i class="dot gap"></i>Usage not attributed by scan</span><span><i class="dot shared"></i>Other shared usage</span><span><i class="dot free"></i>Available</span></div>
 <div id="warning" class="notice"></div>
 <div class="workspace">
-<section class="panel explorer"><div class="panel-head"><div><h2>Explore your disk</h2><p>Open a folder to look inside. Area represents allocated size.</p></div><div class="segments"><button id="mapButton" class="active" aria-pressed="true">Map</button><button id="listButton" aria-pressed="false">List</button></div></div><nav id="breadcrumbs" aria-label="Folder breadcrumbs"></nav><div class="folder-meta"><span id="folderSize"></span><span id="threshold"></span></div><div id="map" role="group" aria-label="Folder size map"></div><div id="fileList" hidden></div><p class="hint">Small entries are grouped as “Other entries”. Click a file to copy its path.</p></section>
-<aside class="panel recommendations"><div class="panel-head"><div><h2>A review list, in priority order</h2><p>Candidate footprint is an estimate, not a promise of reclaimed space.</p></div></div><div class="filters"><select id="category" aria-label="Candidate category"><option value="all">All candidates</option><option value="rebuildable">Rebuildable</option><option value="review">Needs review</option></select><input id="search" type="search" placeholder="Find a path…" aria-label="Search candidates"></div><div id="candidates"></div><div class="selection"><div><strong id="selectedSize">0 B</strong><span id="selectedCount">0 selected</span></div><button id="copy" disabled>Copy selected paths</button></div></aside>
+<section class="panel explorer"><div class="panel-head"><div><h2>Explore your disk</h2><p>Open a folder to explore its contents.</p></div><div class="segments"><button id="mapButton" class="active" aria-pressed="true">Map</button><button id="listButton" aria-pressed="false">List</button></div></div><div class="explorer-controls"><nav id="breadcrumbs" aria-label="Folder breadcrumbs"></nav><label id="scaleControl" class="scale-control">Scale <select id="mapScale" aria-label="Map scale"><option value="balanced">Balanced</option><option value="actual">Actual size</option></select></label></div><div class="folder-meta"><span id="folderSize"></span><span id="threshold"></span></div><div id="map" role="group" aria-label="Folder size map"></div><div id="fileList" hidden></div><p id="scaleNote" class="hint"></p></section>
+<aside class="panel recommendations"><div class="panel-head"><div><h2>Review candidates</h2><p>Candidate footprint is an estimate, not a promise of reclaimed space.</p></div></div><div class="filters"><select id="category" aria-label="Candidate category"><option value="all">All candidates</option><option value="rebuildable">Rebuildable</option><option value="review">Needs review</option></select><input id="search" type="search" placeholder="Find a path…" aria-label="Search candidates"></div><div id="candidates"></div><div class="selection"><div><strong id="selectedSize">0 B</strong><span id="selectedCount">0 selected</span></div><button id="copy" disabled>Copy selected paths</button></div></aside>
 </div>
 <section id="dockerNote" class="notice" hidden></section><section class="panel largest"><div class="panel-head"><div><h2>The largest individual files</h2><p>Allocated size comes first. The logical size may be much larger for sparse files.</p></div></div><div id="largeFiles"></div></section>
 <section class="panel methodology"><details><summary>What this scan includes — and what it cannot prove</summary><div id="method"></div><h3>Access and coverage</h3><p id="coverageDetail"></p><div id="errors"></div><h3>Reference guidance</h3><p><a href="https://docs.docker.com/desktop/troubleshoot-and-support/faqs/macfaqs/" target="_blank" rel="noreferrer">Docker: disk image storage</a> · <a href="https://support.apple.com/en-ie/102154" target="_blank" rel="noreferrer">Apple: local snapshots</a> · <a href="https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components" target="_blank" rel="noreferrer">Apple: manage Xcode components</a></p><p>Source: filesystem metadata on this Mac. Classification uses explicit, shared cleanup rules. Filesystem reports cannot establish which files you still need. Report data is stored locally on your Mac.</p></details></section>
