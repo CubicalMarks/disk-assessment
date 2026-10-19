@@ -64,3 +64,14 @@ The tests cover filesystem accounting, hard links, symlinks, permission error re
 Native checks cover allocated block accounting, sparse files, hardlink deduplication, symlink cycles, root validation, cancellation and compatibility with the earlier snapshot format. The optional executable mode `"dist/Disk Assessment.app/Contents/MacOS/DiskAssessment" --scan /path --output /tmp/report.json` runs the same native scanner without opening a window.
 
 Treemap checks verify true byte proportions in Actual size mode, visibility of smaller entries in Balanced mode, unchanged byte values, area coverage and non-overlapping bounds.
+
+
+## Finder and exploration
+
+Select a map tile, list item, review candidate or large file to inspect its real allocated size, path and share of the current folder. Double-click a folder (or press Return on its tile) to explore it. Back, Forward, Up and breadcrumbs preserve your navigation history. The folder filter applies to the current folder’s displayed entries. Map colors are stable for each path. Balanced/Actual size settings still affect display areas only.
+
+In the macOS app, Finder buttons are available on map tiles, list rows, review candidates, large files and the selection inspector. **Open in Finder** opens a folder window; **Show in Finder** selects a file in its containing folder. Right-click an item, or use the inspector’s More button, for native Finder and Copy Path actions. Command-R reveals the selection. Finder actions only accept paths from the loaded report, check whether they still exist, and never launch files in their default apps. The browser report offers inspection and copying, with Finder integration confined to the native app.
+
+Review checkboxes form a separate selection for copying a list of paths. They do not authorize cleanup or represent guaranteed savings. The Large Files tab keeps individual-file review next to the map.
+
+The interaction patterns were informed by [GrandPerspective’s file selection and Finder reveal](https://grandperspectiv.sourceforge.net/) and [DaisyDisk’s inspection workflow](https://daisydiskapp.com/guide/4/en/Previewing/). No deletion or automated cleanup has been added.

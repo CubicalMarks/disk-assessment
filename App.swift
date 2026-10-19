@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
     private var snapshot: Data?
     private var cancellation: ScanCancellation?
     private var currentFolder: String?
+    private var currentItem: String?
     private var allowedPaths = Set<String>()
     private let resources = Bundle.main.resourceURL!
     private let cacheURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -63,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
 
     @objc private func about() {
         NSApp.orderFrontStandardAboutPanel(options: [.applicationName: "Disk Assessment",
-            .applicationVersion: "0.2", .credits: NSAttributedString(string: "Local, read-only storage assessment. No file contents read and no deletion controls.")])
+            .applicationVersion: "0.3", .credits: NSAttributedString(string: "Local, read-only storage assessment. No file contents read and no deletion controls.")])
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -88,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         decoded.candidates.forEach { allowedPaths.insert($0.path) }
         decoded.largest_files.forEach { allowedPaths.insert($0.path) }
         currentFolder = decoded.tree.path
+        currentItem = nil
         webView.callAsyncJavaScript("window.receiveSnapshot(JSON.parse(json))", arguments: ["json": text], in: nil, in: .page, completionHandler: { _ in })
     }
 
@@ -168,9 +170,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             event("copied")
         case "folder":
             if let path = body["path"] as? String, allowedPaths.contains(path) { currentFolder = path }
-        case "reveal":
-            if let path = currentFolder, allowedPaths.contains(path) {
-                NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: path)])
+        case "selection":
+            if let path = body["path"] as? String, allowedPaths.contains(path) { currentItem = path }
+        case "finder", "reveal":
+            if let path = body["path"] as? String ?? currentItem ?? currentFolder {
+                showInFinder(path, openFolder: (body["openFolder"] as? Bool) ?? false)
+            }
+        case "contextMenu":
+            if let path = body["path"] as? String, allowedPaths.contains(path) {
+                let x = body["x"] as? Double ?? 30
+                let y = body["y"] as? Double ?? 30
+                DispatchQueue.main.async { [weak self] in self?.showItemMenu(path, x: x, y: y) }
             }
         case "export":
             guard let snapshot else { return }
@@ -186,6 +196,55 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
             }
         default: break
         }
+    }
+
+    private func showInFinder(_ path: String, openFolder: Bool) {
+        do {
+            let target = try FinderTarget.resolve(path, allowed: allowedPaths)
+            let url = URL(fileURLWithPath: target.path)
+            if openFolder && target.isDirectory {
+                if !NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: target.path) { event("actionError", "Finder could not open this folder.") }
+            } else {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
+        } catch { event("actionError", error.localizedDescription) }
+    }
+
+    private func showItemMenu(_ path: String, x: Double, y: Double) {
+        do {
+            let target = try FinderTarget.resolve(path, allowed: allowedPaths)
+            let menu = NSMenu()
+            if target.isDirectory {
+                let item = NSMenuItem(title: "Open in Finder", action: #selector(itemMenuAction(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = ["path": path, "action": "open"]
+                menu.addItem(item)
+            }
+            let reveal = NSMenuItem(title: "Show in Finder", action: #selector(itemMenuAction(_:)), keyEquivalent: "")
+            reveal.target = self
+            reveal.representedObject = ["path": path, "action": "reveal"]
+            menu.addItem(reveal)
+            menu.addItem(.separator())
+            let copy = NSMenuItem(title: "Copy Path", action: #selector(itemMenuAction(_:)), keyEquivalent: "")
+            copy.target = self
+            copy.representedObject = ["path": path, "action": "copy"]
+            menu.addItem(copy)
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            let point = NSPoint(x: min(max(0, x), webView.bounds.width),
+                y: webView.isFlipped ? y : webView.bounds.height - y)
+            menu.popUp(positioning: nil, at: point, in: webView)
+        } catch { event("actionError", error.localizedDescription) }
+    }
+
+    @objc private func itemMenuAction(_ sender: NSMenuItem) {
+        guard let info = sender.representedObject as? [String: String],
+              let path = info["path"], allowedPaths.contains(path) else { return }
+        if info["action"] == "copy" {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(path, forType: .string)
+            event("copied")
+        } else { showInFinder(path, openFolder: info["action"] == "open") }
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
