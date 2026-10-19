@@ -5,6 +5,7 @@ This is a local, read-only macOS storage assessment app. Read `README.md` for se
 ## Architecture
 
 - `src/App.swift`: AppKit window, WKWebView bridge, scan lifecycle, private report cache, native menus and dialogs.
+- `src/SnapshotRefresh.swift`: in-place subtree refreshes, aggregate updates and partial-scan metadata. Preserve unscanned siblings and original scan age; do not imply that a folder refresh is a fresh whole-disk scan.
 - `src/Scanner.swift`: native scanner and Codable snapshot models.
 - `src/FinderActions.swift`: validates Finder targets against the loaded report and the current filesystem.
 - `resources/web/index.html`, `resources/web/style.css`, `resources/web/app.js`: bundled report and UI. No bundler, external assets or runtime packages.

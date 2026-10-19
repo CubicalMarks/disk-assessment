@@ -24,6 +24,7 @@ Choose **Scan Mac** or **Choose Folder…**, then browse the resulting map, revi
 - Select an item to inspect its size and path; double-click a folder, or press Return on its map tile, to explore it. Use Back, Forward, Up, breadcrumbs and the current-folder filter to navigate.
 - **Balanced** scaling keeps smaller entries visible using square-root weights with a minimum of one third of an equal share per entry. **Actual size** uses areas proportional to allocated bytes. Labels, percentages, totals, sorting and exports always use measured bytes.
 - **Open in Finder** opens a folder; **Show in Finder** selects a file. Right-click or use **More…** for native actions. Command-R reveals the selection. Finder targets must belong to the loaded report and still exist; files and app bundles are never launched.
+- The reload icon beside the current-folder Finder button rescans that folder in place. Progress and Cancel stay inside the map/list area, without replacing the report or moving its scroll position. It keeps parent navigation, updates ancestor totals and review entries, and returns to the existing report on cancellation or failure. A successful refresh is saved with the report. Other folders retain their earlier measurements; directory/symlink/mount coverage counts still describe the original scan. The largest-files list contains the largest known entries after partial refreshes. A full scan rebuilds global rankings and reconciles hard links shared across refreshed and older folders.
 - Review checkboxes collect paths for copying. They do not authorize cleanup. There are no deletion controls.
 - **Export Snapshot…** saves a JSON report. **New Scan** returns to the scan choices. The UI follows the Mac's appearance and reduced-motion settings.
 
@@ -56,6 +57,7 @@ tools/            Python utilities and icon generation
 | File | Responsibility |
 | --- | --- |
 | `src/App.swift` | AppKit window, WKWebView bridge, scan lifecycle, report persistence and native dialogs/menus |
+| `src/SnapshotRefresh.swift` | Validated subtree refreshes, parent accounting and refresh timestamps |
 | `src/Scanner.swift` | Native metadata scanner and snapshot models |
 | `src/FinderActions.swift` | Report allowlist and current file/folder validation |
 | `resources/web/index.html`, `resources/web/style.css`, `resources/web/app.js` | Shared report interface bundled into the app |

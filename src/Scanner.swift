@@ -83,6 +83,7 @@ struct Snapshot: Codable {
     let largest_files: [ScanNode]
     let coverage: Coverage
     let method: [String]
+    var folder_refreshes: [FolderRefresh]? = nil
 }
 
 enum AssessmentError: LocalizedError {
@@ -106,9 +107,10 @@ final class DiskScanner {
     static let dataRoot = "/System/Volumes/Data"
     let root: String
     let home = FileManager.default.homeDirectoryForCurrentUser.path
-    let minimum: Int64 = 50 * 1024 * 1024
+    let minimum: Int64
     let cancellation: ScanCancellation
     let progress: (Int, Int, String) -> Void
+    private let displayRoot: String?
     private let device: dev_t
     private let rules: [String: CleanupRule]
     private var hardlinks = Set<String>()
@@ -123,9 +125,11 @@ final class DiskScanner {
     private var lastProgress = Date.distantPast
 
     init(root: String, rulesURL: URL, cancellation: ScanCancellation,
-         progress: @escaping (Int, Int, String) -> Void = { _,_,_ in }) throws {
+         minimum: Int64 = 50 * 1024 * 1024, displayRoot: String? = nil, progress: @escaping (Int, Int, String) -> Void = { _,_,_ in }) throws {
         self.root = (root as NSString).standardizingPath
         self.cancellation = cancellation
+        self.minimum = minimum
+        self.displayRoot = displayRoot
         self.progress = progress
         var info = stat()
         guard lstat(self.root, &info) == 0, info.st_mode & S_IFMT == S_IFDIR else {
@@ -140,6 +144,16 @@ final class DiskScanner {
 
     static func displayed(_ path: String) -> String {
         path.hasPrefix(dataRoot + "/") ? String(path.dropFirst(dataRoot.count)) : path
+    }
+
+    private func displayedPath(_ path: String) -> String {
+        // Foundation normalizes aliases such as /private/tmp to /tmp. A rescan
+        // must keep the exact path namespace used by its existing report.
+        if let displayRoot, root != Self.dataRoot {
+            if path == root { return displayRoot }
+            if path.hasPrefix(root + "/") { return displayRoot + path.dropFirst(root.count) }
+        }
+        return Self.displayed(path)
     }
 
     private func classify(_ path: String, directory: Bool) -> CleanupRule? {
@@ -163,7 +177,7 @@ final class DiskScanner {
     private func issue(_ path: String, _ detail: String) {
         issueCount += 1
         if issues.count < 300 {
-            issues.append(ScanIssue(path: Self.displayed(path), error: "AccessError", detail: detail))
+            issues.append(ScanIssue(path: displayedPath(path), error: "AccessError", detail: detail))
         }
     }
 
@@ -176,7 +190,7 @@ final class DiskScanner {
     private func updateProgress(_ path: String) {
         if Date().timeIntervalSince(lastProgress) >= 0.3 {
             lastProgress = Date()
-            progress(files, directories, Self.displayed(path))
+            progress(files, directories, displayedPath(path))
         }
     }
 
@@ -184,7 +198,7 @@ final class DiskScanner {
         try cancellation.check()
         directories += 1
         updateProgress(path)
-        let shown = Self.displayed(path)
+        let shown = displayedPath(path)
         var node = ScanNode(name: (shown as NSString).lastPathComponent, path: shown, children: [])
         let names: [String]
         do { names = try FileManager.default.contentsOfDirectory(atPath: path) }
@@ -204,7 +218,7 @@ final class DiskScanner {
             }
             let mode = info.st_mode & S_IFMT
             if mode == S_IFLNK { symlinks += 1; continue }
-            if info.st_dev != device { mounts.append(Self.displayed(entry)); continue }
+            if info.st_dev != device { mounts.append(displayedPath(entry)); continue }
             var child: ScanNode
             if mode == S_IFDIR {
                 child = try autoreleasepool { try walk(entry) }
@@ -214,7 +228,7 @@ final class DiskScanner {
                     if !hardlinks.insert(identity).inserted { continue }
                 }
                 files += 1
-                child = ScanNode(name: name, path: Self.displayed(entry), bytes: Int64(info.st_blocks) * 512,
+                child = ScanNode(name: name, path: displayedPath(entry), bytes: Int64(info.st_blocks) * 512,
                     logical_bytes: Int64(info.st_size), files: 1, kind: "file")
                 if let rule = classify(child.path, directory: false) { addCandidate(child, rule) }
                 if largest.count < 80 || child.bytes > (largest.last?.bytes ?? 0) {
@@ -273,7 +287,7 @@ final class DiskScanner {
             }
         }
         return Snapshot(version: 1, scanned_at: ISO8601DateFormatter().string(from: Date()),
-            duration_seconds: (Date().timeIntervalSince(start)*10).rounded()/10, root: root, home: home,
+            duration_seconds: (Date().timeIntervalSince(start)*10).rounded()/10, root: displayRoot ?? root, home: home,
             volume: try volume(freeAtStart: before.free), tree: tree,
             candidates: selected.sorted { $0.bytes > $1.bytes }, largest_files: largest,
             coverage: Coverage(files: files, directories: directories, symlinks_skipped: symlinks,

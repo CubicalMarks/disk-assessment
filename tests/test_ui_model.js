@@ -23,3 +23,21 @@ assert.equal(color(a.path),color(a.path));
 assert.match(color(a.path),/^#[a-f\d]{6}$/i);
 assert.equal(root.bytes,32);
 console.log('Report UX: item indexing, ancestor navigation, back/forward history, stable colors and unchanged scan data passed.');
+
+// A rescan must replace stale node objects throughout navigation history.
+const refreshedLeaf={...leaf,bytes:99};
+const refreshedA={...a,bytes:99,children:[refreshedLeaf]};
+const refreshedRoot={...root,bytes:119,children:[refreshedA,b]};
+const history=new Navigation([root]);
+history.visit([root,a]);
+history.visit([root,b]);
+history.back();
+history.rebase(index({tree:refreshedRoot}));
+assert.equal(history.current.at(-1).bytes,99);
+assert.equal(history.canBack,true);
+assert.equal(history.canForward,true);
+assert.equal(history.forward().at(-1),b);
+assert.equal(history.back().at(-1),refreshedA);
+history.rebase(index({tree:{...refreshedRoot,children:[b]}}));
+assert.equal(history.current.at(-1).path,root.path,'Removed navigation targets fall back to their nearest surviving ancestor');
+console.log('Folder rescan navigation: updated objects, parent history, forward history and removed folders passed.');

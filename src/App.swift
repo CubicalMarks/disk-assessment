@@ -101,7 +101,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: cacheURL.path)
     }
 
-    private func startScan(_ root: String) {
+    private func startScan(_ root: String, updating previous: Snapshot? = nil) {
         guard cancellation == nil else { return }
         let token = ScanCancellation()
         cancellation = token
@@ -109,13 +109,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         let rulesURL = resources.appendingPathComponent("cleanup-rules.json")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
-                let scanner = try DiskScanner(root: root, rulesURL: rulesURL, cancellation: token) { files, dirs, path in
+                let scanner = try DiskScanner(root: root, rulesURL: rulesURL, cancellation: token, minimum: previous?.coverage.tree_minimum_bytes ?? 50 * 1024 * 1024, displayRoot: previous == nil ? nil : root) { files, dirs, path in
                     DispatchQueue.main.async { [weak self] in
                         guard self?.cancellation === token else { return }
                         self?.event("progress", ["files": files, "directories": dirs, "path": path])
                     }
                 }
-                let result = try scanner.run()
+                let scanned = try scanner.run()
+                let result = try previous.map { try SnapshotRefresh.merging(scanned, into: $0, at: DiskScanner.displayed(root)) } ?? scanned
                 let data = try JSONEncoder().encode(result)
                 try token.check()
                 DispatchQueue.main.async { [weak self] in
@@ -150,6 +151,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKScriptMessageHandler
         case "ready": event("ready", snapshot != nil)
         case "viewLast": showSnapshot()
         case "scanMac": startScan(DiskScanner.dataRoot)
+        case "rescan":
+            guard cancellation == nil, let path = body["path"] as? String,
+                  path == currentFolder, allowedPaths.contains(path), let snapshot else {
+                event("rescanError", "This folder is no longer part of the current report.")
+                return
+            }
+            do {
+                let previous = try JSONDecoder().decode(Snapshot.self, from: snapshot)
+                try SnapshotRefresh.validate(path, in: previous)
+                startScan(path, updating: previous)
+            } catch { event("rescanError", error.localizedDescription) }
         case "chooseFolder":
             guard cancellation == nil else { return }
             let panel = NSOpenPanel()

@@ -3,7 +3,7 @@ const native = Boolean(window.webkit?.messageHandlers?.diskAssessment);
 const $ = id => document.getElementById(id);
 let data, model, navigation, stack = [], activeItem;
 let selected = new Set(), view = 'map', mapScale = 'balanced', lastAvailable = false;
-let currentTab = 'review';
+let currentTab = 'review', rescanPending = false;
 const fmt = n => {
     if (!n) return '0 B';
     const units = ['B','KiB','MiB','GiB','TiB'];
@@ -23,6 +23,7 @@ function icon(name) {
         finder:'M3 4h18v16H3V4Z M12 4l-2 9h4v7 M7 9h.01 M17 9h.01 M7 15c2 2 8 2 10 0',
         back:'m14 6-6 6 6 6', forward:'m10 6 6 6-6 6', up:'m6 14 6-6 6 6',
         arrow:'M5 12h14 m-6-6 6 6-6 6', copy:'M8 8h12v13H8V8Z M16 8V3H3v13h5',
+        reload:'M20 4v6h-6 M20 10a8 8 0 1 0 .2 5',
         check:'m5 12 4 4 10-10'
     };
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
@@ -126,7 +127,7 @@ function parts(node) {
         .filter(child => child.bytes>0).sort((a,b) => b.bytes-a.bytes);
 }
 function navigate(chain, record=true) {
-    if (!chain?.length) return;
+    if (rescanPending || !chain?.length) return;
     if (record) navigation.visit(chain);
     stack = chain.slice();
     $('folderFilter').value = '';
@@ -141,9 +142,9 @@ function renderExplorer() {
     const node = stack.at(-1);
     if (!node) return;
     if (native) sendNative('folder',{path:node.path});
-    $('navBack').disabled = !navigation.canBack;
-    $('navForward').disabled = !navigation.canForward;
-    $('navUp').disabled = stack.length < 2;
+    $('navBack').disabled = rescanPending || !navigation.canBack;
+    $('navForward').disabled = rescanPending || !navigation.canForward;
+    $('navUp').disabled = rescanPending || stack.length < 2;
     $('breadcrumbs').replaceChildren();
     stack.forEach((entry,index) => {
         const name = index===0 && data.root==='/System/Volumes/Data' ? 'Data volume' : entry.name;
@@ -153,7 +154,8 @@ function renderExplorer() {
         if (index < stack.length-1) $('breadcrumbs').append(el('span','','›'));
     });
     $('folderSize').textContent = fmt(node.bytes)+' · '+node.files.toLocaleString()+' files'+(node.errors?' · incomplete':'');
-    $('threshold').textContent = fmt(data.coverage.tree_minimum_bytes)+' detail';
+    const refreshed=(data.folder_refreshes||[]).filter(item=>node.path===item.path||node.path.startsWith(item.path==='/'?'/':item.path+'/')).sort((a,b)=>b.scanned_at.localeCompare(a.scanned_at))[0];
+    $('threshold').textContent = fmt(data.coverage.tree_minimum_bytes)+' detail'+(refreshed?' · Refreshed '+new Date(refreshed.scanned_at).toLocaleTimeString():'');
     $('map').hidden = view!=='map';
     $('fileList').hidden = view!=='list';
     $('scaleControl').hidden = view!=='map';
@@ -284,12 +286,15 @@ function setTab(tab) {
     $('reviewTab').setAttribute('aria-selected',String(tab==='review'));
     $('largeTab').setAttribute('aria-selected',String(tab==='large'));
 }
-function render() {
+function render(preserveNavigation=false) {
     model=ReportModel.index(data);
-    stack=[data.tree];
-    const home=model.chain(data.home);
-    if(home)stack=home;
-    navigation=new ReportModel.Navigation(stack);
+    if(preserveNavigation&&navigation){
+        navigation.rebase(model);
+        stack=navigation.current;
+    }else{
+        stack=model.chain(data.home)||[data.tree];
+        navigation=new ReportModel.Navigation(stack);
+    }
     activeItem=stack.at(-1);
     const total=category=>data.candidates.filter(item=>item.category===category).reduce((sum,item)=>sum+item.bytes,0);
     $('free').textContent=fmt(data.volume.free);
@@ -299,9 +304,12 @@ function render() {
     $('measured').textContent=fmt(data.tree.bytes);
     $('coverage').textContent=data.coverage.files.toLocaleString()+' files · '+data.coverage.error_count+' access errors';
     const date=new Date(data.scanned_at);
-    $('stamp').textContent='Scanned '+date.toLocaleString()+'\n'+data.root;$('stamp').style.whiteSpace='pre-line';
+    const partial=Boolean(data.folder_refreshes?.length);
+    $('stamp').textContent=(partial?'Full scan ':'Scanned ')+date.toLocaleString()+'\n'+data.root;$('stamp').style.whiteSpace='pre-line';
     $('footerTime').textContent='Scan duration: '+data.duration_seconds+' s';
     $('warning').textContent=(data.coverage.error_count?'Partial coverage: '+data.coverage.error_count+' paths could not be read. ':'')+'Candidate footprints require review. APFS sharing and inaccessible data affect actual space recovered.';
+    if(partial)$('warning').append(' Folder rescans are included; other folders retain their earlier measurements.');
+    $('largeCaption').textContent=partial?'Largest known files. Folders outside refreshed scopes retain earlier measurements.':'The largest files in this scan. Select to inspect; use Finder to see the item.';
     const measured=data.tree.bytes, gap=Math.max(0,data.volume.used-measured), available=data.volume.free, shared=data.volume.other_shared_usage||0;
     const barTotal=measured+gap+available+shared;
     $('volumeBar').replaceChildren();
@@ -310,7 +318,7 @@ function render() {
     }
     if(measured>data.volume.used)$('warning').append(' Measured blocks exceed volume-used bytes; the bar shows scan accounting.');
     const ul=el('ul');data.method.forEach(method=>ul.append(el('li','',method)));$('method').replaceChildren(ul);
-    $('coverageDetail').textContent=`${data.coverage.directories.toLocaleString()} directories visited. ${data.coverage.symlinks_skipped.toLocaleString()} symlinks and ${data.coverage.mounts_skipped.length} mount points skipped. ${data.coverage.error_count} access errors; first ${data.coverage.errors.length} below. Missing data cannot be assumed to be junk.`;
+    $('coverageDetail').textContent=(partial?'Original scan coverage counters; file and error totals include folder rescans. ':'')+`${data.coverage.directories.toLocaleString()} directories visited. ${data.coverage.symlinks_skipped.toLocaleString()} symlinks and ${data.coverage.mounts_skipped.length} mount points skipped. ${data.coverage.error_count} access errors; ${data.coverage.errors.length} retained below. Missing data cannot be assumed to be junk.`;
     $('errors').replaceChildren();data.coverage.errors.forEach(error=>$('errors').append(el('p','',error.path+' — '+error.error)));
     $('folderFilter').value='';
     renderExplorer();renderCandidates();renderLargeFiles();renderDocker();setTab(currentTab);
@@ -324,12 +332,13 @@ async function load() {
     try {
         $('reload').disabled=true;
         const response=await fetch('report-data.json',{cache:'no-store'});
-        if(!response.ok)throw Error('Snapshot missing. Run python3 scan.py first.');
+        if(!response.ok)throw Error('Snapshot missing. Run python3 tools/scan.py first.');
         data=await response.json();selected=new Set();render();
     } catch(error) { $('warning').textContent=error.message;$('warning').setAttribute('role','alert'); }
     finally { $('reload').disabled=false; }
 }
 function setView(next) {
+    if(rescanPending)return;
     view=next;
     for(const[id,name]of[['mapButton','map'],['listButton','list']]){
         $(id).classList.toggle('active',view===name);$(id).setAttribute('aria-pressed',String(view===name));
@@ -345,21 +354,44 @@ function showScreen(screen) {
 }
 function initNative() {
     document.body.classList.add('native');$('reload').hidden=true;
-    ['newScan','exportSnapshot','folderFinder'].forEach(id=>$(id).hidden=false);
+    ['newScan','exportSnapshot','folderFinder','folderRescan'].forEach(id=>$(id).hidden=false);
     $('newScan').onclick=()=>showScreen('start');$('scanMac').onclick=()=>sendNative('scanMac');$('chooseFolder').onclick=()=>sendNative('chooseFolder');
     $('viewLast').onclick=()=>sendNative('viewLast');
     $('cancelScan').onclick=()=>{sendNative('cancel');$('cancelScan').disabled=true;$('cancelScan').textContent='Cancelling…'};
     $('exportSnapshot').onclick=()=>sendNative('export');
+    $('folderCancel').onclick=()=>{sendNative('cancel');$('folderCancel').disabled=true;$('folderCancel').textContent='Cancelling…'};
     showScreen('start');sendNative('ready');
 }
-window.receiveSnapshot=snapshot=>{data=snapshot;selected=new Set();lastAvailable=true;showScreen('report');render()};
+window.receiveSnapshot=snapshot=>{
+    const rescanned=rescanPending;rescanPending=false;setFolderBusy(false);
+    data=snapshot;selected=new Set();lastAvailable=true;
+    if(!rescanned)showScreen('report');
+    render(rescanned);
+    if(rescanned)toast('Folder rescanned');
+};
+function setFolderBusy(busy){
+    $('folderVisual').setAttribute('aria-busy',String(busy));
+    $('folderProgress').hidden=!busy;
+    $('map').inert=busy;$('fileList').inert=busy;
+    for(const id of ['navBack','navForward','navUp','folderFilter','folderRescan','mapButton','listButton','mapScale','newScan']){
+        const control=$(id);
+        if(busy){control.dataset.wasDisabled=String(control.disabled);control.disabled=true}
+        else if(control.dataset.wasDisabled!==undefined){control.disabled=control.dataset.wasDisabled==='true';delete control.dataset.wasDisabled}
+    }
+}
+function scanFailed(message){
+    if(rescanPending&&data){rescanPending=false;setFolderBusy(false);renderExplorer();toast(message)}
+    else{$('startMessage').textContent=message;showScreen('start')}
+}
 window.nativeEvent=(name,value)=>{
     switch(name){
         case'ready':lastAvailable=value;showScreen('start');break;
-        case'scanning':$('scanRoot').textContent=value;$('scanCount').textContent='Starting scan…';$('scanPath').textContent='';$('cancelScan').disabled=false;$('cancelScan').textContent='Cancel Scan';$('startMessage').textContent='';showScreen('scanning');break;
-        case'progress':$('scanCount').textContent=value.files.toLocaleString()+' files · '+value.directories.toLocaleString()+' folders';$('scanPath').textContent=value.path;break;
-        case'cancelled':lastAvailable=value;$('startMessage').textContent='Scan cancelled. Your previous report is unchanged.';showScreen('start');break;
-        case'error':$('startMessage').textContent=value;showScreen('start');break;
+        case'scanning':
+            if(!rescanPending){$('scanRoot').textContent=value;$('scanCount').textContent='Starting scan…';$('scanPath').textContent='';$('cancelScan').disabled=false;$('cancelScan').textContent='Cancel Scan';$('startMessage').textContent='';showScreen('scanning')}
+            break;
+        case'progress':$(rescanPending?'folderScanCount':'scanCount').textContent=value.files.toLocaleString()+' files · '+value.directories.toLocaleString()+' folders';$(rescanPending?'folderScanPath':'scanPath').textContent=value.path;break;
+        case'cancelled':lastAvailable=value;scanFailed('Scan cancelled. Your previous report is unchanged.');break;
+        case'error':case'rescanError':scanFailed(value);break;
         case'actionError':case'saveWarning':toast(value);break;
         case'copied':toast('Path copied');break;
     }
@@ -370,12 +402,23 @@ $('reload').onclick=load;$('category').onchange=renderCandidates;$('search').oni
 $('copy').onclick=()=>copy(data.candidates.filter(item=>selected.has(item.path)).map(item=>item.path).join('\n'));
 $('mapButton').onclick=()=>setView('map');$('listButton').onclick=()=>setView('list');
 $('reviewTab').onclick=()=>setTab('review');$('largeTab').onclick=()=>setTab('large');
-$('navBack').append(icon('back'));$('navForward').append(icon('forward'));$('navUp').append(icon('up'));$('folderFinder').append(icon('finder'));
+$('navBack').append(icon('back'));$('navForward').append(icon('forward'));$('navUp').append(icon('up'));$('folderFinder').append(icon('finder'));$('folderRescan').append(icon('reload'));
 $('navBack').onclick=()=>navigate(navigation.back(),false);$('navForward').onclick=()=>navigate(navigation.forward(),false);
 $('navUp').onclick=()=>{if(stack.length>1)navigate(stack.slice(0,-1))};$('folderFinder').onclick=()=>finder(stack.at(-1));
+$('folderRescan').onclick=()=>{
+    const folder=stack.at(-1);
+    if(!native||!folder||rescanPending)return;
+    rescanPending=true;
+    $('folderScanTitle').textContent='Rescanning '+folder.name+'…';
+    $('folderScanCount').textContent='Starting scan…';$('folderScanPath').textContent='';
+    $('folderCancel').disabled=false;$('folderCancel').textContent='Cancel Rescan';
+    setFolderBusy(true);
+    sendNative('rescan',{path:folder.path});
+};
 document.addEventListener('keydown',event=>{
     if(event.target.closest('input,select,textarea'))return;
     if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='r'&&native&&data){event.preventDefault();finder(activeItem||stack.at(-1),false)}
+    if(rescanPending)return;
     if(event.altKey&&event.key==='ArrowLeft'&&navigation?.canBack){event.preventDefault();navigate(navigation.back(),false)}
     if(event.altKey&&event.key==='ArrowRight'&&navigation?.canForward){event.preventDefault();navigate(navigation.forward(),false)}
 });

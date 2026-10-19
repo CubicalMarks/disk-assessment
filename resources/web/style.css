@@ -409,3 +409,14 @@ main { padding-top: 14px; }
     .tile.tile-hero .tile-amount { font-size: 27px; }.tile.tile-medium .tile-amount { font-size: 18px; }#map { height: 450px; }.app-screen h1 { font-size: 31px; }
 }
 @media(prefers-reduced-motion:reduce) { .tile,.tile-finder,.candidate { transition: none; } }
+
+/* Keep folder rescans local to the current map/list, without moving the report. */
+.folder-visual { position: relative; }
+.folder-visual[aria-busy="true"] { min-height: 250px; }
+.folder-visual[aria-busy="true"] > #map, .folder-visual[aria-busy="true"] > #fileList { opacity: .18; pointer-events: none; }
+.folder-progress { position: absolute; inset: 0 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; border-radius: 12px; background: color-mix(in srgb,var(--surface) 85%,transparent); backdrop-filter: blur(8px); text-align: center; }
+.folder-progress .scan-spinner { width: 25px; height: 25px; margin: 0 0 4px; }
+.folder-progress strong { font-size: 16px; }
+.folder-progress p { font-size: 13px; color: var(--muted); margin: 0; }
+.folder-progress code { font: 12px ui-monospace,monospace; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 18px; }
+.folder-progress button { margin-top: 4px; }

@@ -17,7 +17,7 @@ iconutil -c icns .build/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns
 # macOS includes AppKit, WebKit and the Swift runtime. No Python or server needed.
 xcrun swiftc -O -swift-version 5 -module-cache-path "$PWD/.build/module-cache" \
   -target "$(uname -m)-apple-macosx13.0" -framework AppKit -framework WebKit \
-  src/Scanner.swift src/FinderActions.swift src/App.swift -o "$APP/Contents/MacOS/DiskAssessment"
+  src/Scanner.swift src/SnapshotRefresh.swift src/FinderActions.swift src/App.swift -o "$APP/Contents/MacOS/DiskAssessment"
 codesign --force --deep --sign - "$APP"
 codesign --verify --deep --strict "$APP"
 printf 'Built %s\n' "$APP"

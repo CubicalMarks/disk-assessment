@@ -34,6 +34,15 @@ const ReportModel = (() => {
             this.entries.push(chain.slice());
             this.position++;
         }
+        rebase(model) {
+            this.entries=this.entries.map(chain=>{
+                for(const node of chain.slice().reverse()){
+                    const fresh=model.chain(node.path);
+                    if(fresh)return fresh;
+                }
+                return [model.nodes.values().next().value];
+            });
+        }
         back() { if (this.canBack) this.position--; return this.current; }
         forward() { if (this.canForward) this.position++; return this.current; }
     }
