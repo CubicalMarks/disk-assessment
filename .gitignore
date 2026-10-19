@@ -1,0 +1,5 @@
+report-data.json
+assessment.md
+__pycache__/
+*.log
+.DS_Store
