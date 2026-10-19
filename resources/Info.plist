@@ -11,5 +11,5 @@
 <key>CFBundleIconFile</key><string>AppIcon</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>NSHighResolutionCapable</key><true/>
-<key>NSHumanReadableCopyright</key><string>Local read-only storage assessment.</string>
+<key>NSHumanReadableCopyright</key><string>Copyright © 2026 Marcus Libäck. MIT License.</string>
 </dict></plist>

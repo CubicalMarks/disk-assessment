@@ -101,3 +101,7 @@ The CLI writes `report-data.json` by default; use `--output reports/example.json
 ```
 
 For an optional Docker breakdown, run `python3 tools/inspect_docker.py` after creating the default CLI report. It invokes only `docker system df --format json` and appends the daemon's estimates. It performs no pruning. These estimates overlap the disk-image footprint and must not be added to candidate totals.
+
+## License
+
+[MIT License](LICENSE). Copyright (c) 2026 Marcus Libäck.
