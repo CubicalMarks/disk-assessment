@@ -13,3 +13,7 @@ xcrun swiftc -swift-version 5 -module-cache-path "$PWD/.build/module-cache" src/
 .build/finder-tests
 xcrun swiftc -swift-version 5 -module-cache-path "$PWD/.build/module-cache" src/Scanner.swift src/SnapshotRefresh.swift tests/SnapshotRefreshTests.swift -o .build/refresh-tests
 .build/refresh-tests
+xcrun swiftc -swift-version 5 -module-cache-path "$PWD/.build/module-cache" src/Scanner.swift src/SnapshotRefresh.swift src/ReportModel.swift tests/ReportModelTests.swift -o .build/report-model-tests
+.build/report-model-tests
+xcrun swiftc -swift-version 5 -module-cache-path "$PWD/.build/module-cache" -framework AppKit -framework SwiftUI src/Scanner.swift src/SnapshotRefresh.swift src/FinderActions.swift src/ReportModel.swift src/AssessmentModel.swift tests/AssessmentModelTests.swift -o .build/assessment-model-tests
+.build/assessment-model-tests

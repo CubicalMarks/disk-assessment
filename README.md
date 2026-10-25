@@ -1,6 +1,6 @@
 # Disk Assessment
 
-A local, read-only macOS app for exploring disk usage, reviewing cleanup candidates and opening items in Finder. It runs in a normal window with no background scanner or menu-bar utility.
+A native SwiftUI macOS app for exploring disk usage, reviewing cleanup candidates and opening items in Finder. It is local and read-only, with no background scanner or menu-bar utility.
 
 ## Build and run
 
@@ -15,15 +15,34 @@ make check
 open "dist/Disk Assessment.app"
 ```
 
-The build targets the current Mac's architecture and bundles the report assets, native Swift scanner and macOS WebKit integration. There are no package downloads or runtime dependencies. You can also open the app in Finder or copy it to Applications. The app is signed ad hoc for local use; it is not notarized for distribution.
+The build targets the current Mac's architecture and uses SwiftUI and AppKit, with a native Swift scanner and treemap. There are no package downloads or runtime dependencies for building or running the app. You can also open the app in Finder or copy it to Applications. Builds stage and verify a fresh bundle before swapping it into `dist/`; the old bundle stays in `.build/app-stage.*` so a running app's files are preserved. Reopen the app to use a new build, after any active scan finishes.
+
+Signing defaults to ad hoc for local use. To select an existing certificate, put its fingerprint on one line in `.signing-identity` (ignored by Git), or set `CODE_SIGN_IDENTITY` for a build. The environment variable takes precedence; `CODE_SIGN_IDENTITY=-` explicitly selects ad-hoc signing. A configured signing failure stops the build and preserves the previous bundle. Neither local signing option establishes notarized distribution support.
 
 Choose **Scan Mac** or **Choose Folder…**, then browse the resulting map, review candidates or largest files. **View last report** reopens the last completed scan. Cancelling a scan preserves that report.
 
+## Disk images and releases
+
+`make dmg` builds/signs a fresh app and creates `dist/Disk Assessment-<version>-<architecture>.dmg` plus a SHA-256 sidecar. The compressed, read-only image has a custom Finder layout: drag **Disk Assessment** onto **Applications**, then launch it from Applications and eject the image. Quit an existing instance before replacing it. Saved reports remain in Application Support.
+
+Packaging uses macOS tools plus pinned, build-only `ds-store` and `mac-alias` Python libraries installed into ignored `.build/dmg-tools`. The first packaging run needs internet. These libraries write the Finder layout without Automation permissions; they are not bundled with the app. The DMG is not notarized or signed for public distribution, and downloaded copies may be blocked by Gatekeeper.
+
+The release command follows the local Transcribe workflow. Install/authenticate GitHub CLI, set `CFBundleShortVersionString` to the desired `X.Y.Z` and increment `CFBundleVersion` in `resources/Info.plist`, then commit and push the intended sources to `main`:
+
+```sh
+bash scripts/release.sh --dry-run
+make release
+# Optional: make release RELEASE_ARGS="--prerelease --notes-file docs/release-notes.md"
+```
+
+The dry run checks repository access, branch state and version tags without building or writing remotely. `make release` requires clean `main` matching `origin/main`, runs checks/tests, packages and verifies the DMG, pushes `vX.Y.Z`, and uploads the DMG/checksum to a **draft** GitHub release. Review and publish the draft on GitHub. It never commits sources, pushes branch changes, retargets existing tags or overwrites release assets. After an upload failure, inspect Releases for a partial draft before retrying. Public Developer ID signing and notarization are separate work.
+
 ## Using the report
 
-- Select an item to inspect its size and path; double-click a folder, or press Return on its map tile, to explore it. Use Back, Forward, Up, breadcrumbs and the current-folder filter to navigate.
+- The native sidebar opens **Overview**, **Storage Map**, **Review**, **Large Files** and **Scan Details**. The toolbar offers a new scan, export and folder selection; the File and Navigate menus provide keyboard shortcuts.
+- Select an item to inspect its size and path; double-click a folder, or use **Explore Folder** in the inspector (Return), to explore it. Use Back, Forward, Up, breadcrumbs and the current-folder filter to navigate. The map/list selector switches to a native sortable table.
 - **Balanced** scaling keeps smaller entries visible using square-root weights with a minimum of one third of an equal share per entry. **Actual size** uses areas proportional to allocated bytes. Labels, percentages, totals, sorting and exports always use measured bytes.
-- **Open in Finder** opens a folder; **Show in Finder** selects a file. Right-click or use **More…** for native actions. Command-R reveals the selection. Finder targets must belong to the loaded report and still exist; files and app bundles are never launched.
+- **Open in Finder** opens a folder; **Show in Finder** selects a file. Right-click an item for native actions. Command-R reveals the selection. Finder targets must belong to the loaded report and still exist; files and app bundles are never launched.
 - The reload icon beside the current-folder Finder button rescans that folder in place. Progress and Cancel stay inside the map/list area, without replacing the report or moving its scroll position. It keeps parent navigation, updates ancestor totals and review entries, and returns to the existing report on cancellation or failure. A successful refresh is saved with the report. Other folders retain their earlier measurements; directory/symlink/mount coverage counts still describe the original scan. The largest-files list contains the largest known entries after partial refreshes. A full scan rebuilds global rankings and reconciles hard links shared across refreshed and older folders.
 - Review checkboxes collect paths for copying. They do not authorize cleanup. There are no deletion controls.
 - **Export Snapshot…** saves a JSON report. **New Scan** returns to the scan choices. The UI follows the Mac's appearance and reduced-motion settings.
@@ -33,13 +52,18 @@ Choose **Scan Mac** or **Choose Folder…**, then browse the resulting map, revi
 | Command | Purpose |
 | --- | --- |
 | `make build` | Build and sign the app, then verify its signature |
+| `make dmg` | Build/sign and package a styled disk image with SHA-256 |
+| `make release` | Check, build, tag and upload a draft GitHub release |
+| `make run` | Build and open the app |
 | `make lint` | Check shell, JavaScript, Swift and Python syntax, JSON/plist parsing and changed-line whitespace |
 | `make test` | Run native, Python and JavaScript tests using temporary fixtures |
 | `make check` | Run source checks, build/signature verification and tests |
 
-The scripts also work directly: `bash scripts/lint.sh`, `bash scripts/build-app.sh` and `bash scripts/test-app.sh`. Tests do not require an existing app bundle, a real scan, Docker or a saved report. Source checks use the installed language tools; there is no third-party style linter or automatic reformatting. Swift compilation in the build checks types; the syntax checks alone do not establish correct behavior. HTML/CSS changes need a visual check in the rebuilt app.
+The scripts also work directly: `bash scripts/lint.sh`, `bash scripts/build-app.sh` and `bash scripts/test-app.sh`. Tests do not require an existing app bundle, a real scan, Docker or a saved report. Source checks use the installed language tools; there is no third-party style linter or automatic reformatting. Swift compilation in the build checks types; syntax checks alone do not establish correct behavior. Native UI changes need a visual check in the rebuilt app; browser HTML/CSS changes need a separate browser check.
 
-Tests cover allocated/sparse file accounting, hard-link deduplication, symlinks, access error reporting, cancellation, candidate overlap, snapshot compatibility, Finder target validation, navigation history, stable colors and map proportions/bounds. Finder tests resolve temporary paths without opening items.
+Tests cover allocated/sparse file accounting, hard-link deduplication, symlinks, access error reporting, cancellation, candidate overlap, snapshot compatibility, Finder target validation, native/browser navigation history, map proportions/bounds, native scan lifecycle/report preservation and release guards. Finder tests resolve temporary paths without opening items. Release tests use fake tools and never write to GitHub.
+
+For isolated UI checks, set `DISK_ASSESSMENT_REPORT_PATH` to a synthetic report cache. `--import-snapshot /path/to/fixture.json` opens a report without saving it into the cache. `DISK_ASSESSMENT_APPEARANCE=light` or `dark` previews that appearance within the app; omit it to follow macOS. Keep QA preferences isolated with a separate bundle identifier. Never use real reports for committed screenshots.
 
 Read [AGENTS.md](AGENTS.md) for implementation boundaries and change-specific validation. Editor whitespace settings are in `.editorconfig`. No remote or CI provider is assumed by the local checks.
 
@@ -47,7 +71,7 @@ Read [AGENTS.md](AGENTS.md) for implementation boundaries and change-specific va
 
 ```text
 src/              Swift application code
-resources/web/    Bundled HTML, CSS and JavaScript
+resources/web/    Optional browser report (not bundled with the native app)
 resources/        Shared cleanup rules and app configuration
 tests/            Swift, JavaScript and Python tests
 scripts/          Build, source checks and test runners
@@ -56,15 +80,20 @@ tools/            Python utilities and icon generation
 
 | File | Responsibility |
 | --- | --- |
-| `src/App.swift` | AppKit window, WKWebView bridge, scan lifecycle, report persistence and native dialogs/menus |
+| `src/App.swift` | SwiftUI app/window, native menus, lifecycle and headless scan entry point |
+| `src/AssessmentModel.swift` | Scan lifecycle, cancellation, private report cache, navigation state and native dialogs/actions |
+| `src/ReportViews.swift` | Native overview, treemap/table explorer, inspector, review, large files and scan details |
+| `src/ReportModel.swift` | Pure report indexing, navigation/rebasing, map layout and display formatting |
 | `src/SnapshotRefresh.swift` | Validated subtree refreshes, parent accounting and refresh timestamps |
 | `src/Scanner.swift` | Native metadata scanner and snapshot models |
 | `src/FinderActions.swift` | Report allowlist and current file/folder validation |
-| `resources/web/index.html`, `resources/web/style.css`, `resources/web/app.js` | Shared report interface bundled into the app |
+| `resources/web/index.html`, `resources/web/style.css`, `resources/web/app.js` | Optional browser report interface |
 | `resources/web/treemap.js`, `resources/web/ui-model.js` | Pure map layout and report navigation helpers |
 | `resources/cleanup-rules.json` | Shared exact-path candidate classification |
 | `tools/scan.py`, `tools/serve.py`, `tools/inspect_docker.py` | Optional Python/browser tools |
 | `tools/Icon.swift`, `resources/Info.plist`, `scripts/build-app.sh` | App icon generation, bundle configuration and build/signing |
+| `scripts/build-dmg.sh`, `scripts/layout-dmg.py`, `scripts/DMGBackground.swift` | Styled DMG packaging and Finder layout |
+| `scripts/release.sh` | Guarded version tagging and draft GitHub release uploads |
 
 ## Measurement limits
 

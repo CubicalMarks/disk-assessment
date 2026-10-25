@@ -9,13 +9,13 @@ done
 
 for source in scripts/*.sh; do bash -n "$source"; done
 for source in resources/web/*.js tests/*.js; do node --check "$source"; done
-for source in src/*.swift tools/*.swift tests/*.swift; do xcrun swiftc -frontend -parse "$source"; done
+for source in src/*.swift tools/*.swift scripts/*.swift tests/*.swift; do xcrun swiftc -frontend -parse "$source"; done
 python3 - <<'PY'
 import json
 import plistlib
 from pathlib import Path
 
-for source in sorted([*Path('tools').rglob('*.py'), *Path('tests').rglob('*.py')]):
+for source in sorted([*Path('tools').rglob('*.py'), *Path('scripts').glob('*.py'), *Path('tests').rglob('*.py')]):
     compile(source.read_bytes(), str(source), 'exec')
 json.loads(Path('resources/cleanup-rules.json').read_text())
 plistlib.loads(Path('resources/Info.plist').read_bytes())
