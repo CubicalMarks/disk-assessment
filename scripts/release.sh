@@ -60,7 +60,7 @@ remote_tag_commit=$(printf '%s\n' "$remote_tags" | awk 'NF { direct=$1 } /\^\{\}
 if [[ -n "$remote_tag_commit" && "$remote_tag_commit" != "$commit" ]]; then
     fail "$tag already identifies another remote commit. Bump the app version."
 fi
-asset="dist/Disk Assessment-$version-$(uname -m).dmg"
+asset="dist/Disk-Assessment-$version-$(uname -m).dmg"
 printf 'Repository: %s\nVersion: %s\nCommit: %s\nAssets: %s and SHA-256\nDestination: draft release (prerelease=%s)\n' "$repo" "$tag" "$commit" "$asset" "$prerelease"
 if [[ "$dry_run" == true ]]; then
     printf 'Dry run complete. No checks/build, tags or release writes performed.\n'

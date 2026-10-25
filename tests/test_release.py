@@ -49,6 +49,8 @@ elif tool == 'gh':
     elif args[:2] == ['release', 'create']:
         assert '--draft' in args and '--verify-tag' in args
         assert Path(args[3]).is_file() and Path(args[4]).is_file()
+        assert ' ' not in Path(args[3]).name and ' ' not in Path(args[4]).name
+        assert Path(args[3]).name in Path(args[4]).read_text()
         notes = Path(args[args.index('--notes-file') + 1]).read_text()
         assert 'not notarized' in notes
         if scenario == 'upload-fails':
@@ -61,7 +63,7 @@ elif tool == 'make':
         sys.exit(1)
     if args == ['dmg']:
         Path('dist').mkdir(exist_ok=True)
-        asset = Path('dist/Disk Assessment-0.3.10-' + os.uname().machine + '.dmg')
+        asset = Path('dist/Disk-Assessment-0.3.10-' + os.uname().machine + '.dmg')
         asset.write_bytes(b'synthetic installer')
         Path('built').touch()
         checksum = '0' * 64 if scenario == 'bad-checksum' else hashlib.sha256(asset.read_bytes()).hexdigest()

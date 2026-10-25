@@ -14,7 +14,7 @@ version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' 'dist/D
 stage_path=$(mktemp -d "$PWD/.build/dmg-stage.XXXXXX")
 mount_path="$stage_path/mounted"
 image_path="$stage_path/installer-rw.dmg"
-output_path="$PWD/dist/Disk Assessment-$version-$(uname -m).dmg"
+output_path="$PWD/dist/Disk-Assessment-$version-$(uname -m).dmg"
 mounted=false
 cleanup() {
     if [[ "$mounted" == true ]]; then

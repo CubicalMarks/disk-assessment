@@ -23,7 +23,7 @@ Choose **Scan Mac** or **Choose Folder…**, then browse the resulting map, revi
 
 ## Disk images and releases
 
-`make dmg` builds/signs a fresh app and creates `dist/Disk Assessment-<version>-<architecture>.dmg` plus a SHA-256 sidecar. The compressed, read-only image has a custom Finder layout: drag **Disk Assessment** onto **Applications**, then launch it from Applications and eject the image. Quit an existing instance before replacing it. Saved reports remain in Application Support.
+`make dmg` builds/signs a fresh app and creates `dist/Disk-Assessment-<version>-<architecture>.dmg` plus a SHA-256 sidecar. The compressed, read-only image has a custom Finder layout: drag **Disk Assessment** onto **Applications**, then launch it from Applications and eject the image. Quit an existing instance before replacing it. Saved reports remain in Application Support.
 
 Packaging uses macOS tools plus pinned, build-only `ds-store` and `mac-alias` Python libraries installed into ignored `.build/dmg-tools`. The first packaging run needs internet. These libraries write the Finder layout without Automation permissions; they are not bundled with the app. The DMG is not notarized or signed for public distribution, and downloaded copies may be blocked by Gatekeeper.
 
